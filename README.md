@@ -11,13 +11,20 @@ Clone the OpenCV Vision repository from Github:
     git clone https://github.com/ros-perception/vision_opencv.git
     ```
     Switch to the branch matching your ROS distribution release.
-
-### Mounting Kinect
-
-Place the kinect on the PTU, and bind it, for example with tape, so that it doesn't move. Make sure to have enough wiggle-room for it's USB cable.
-
+    
 ### Setting up FLIR-PTU-D64
 
 Follow these instructions:
 
 http://ids-wiki.fzi.de/index.php/HBP/DVS-head
+
+### Mounting Kinect
+
+Place the kinect on the PTU, and bind it, for example with tape, so that it doesn't move. Make sure to have enough wiggle-room for it's USB cable.
+
+### Launching the model
+
+Use the following launcher:
+
+    ```bash
+    roslaunch saliency kinect.launch 
