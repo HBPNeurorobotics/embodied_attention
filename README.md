@@ -14,7 +14,7 @@ Clone the OpenCV Vision repository from Github:
 
 ### Mounting Kinect
 
-Place the kinect on the PTU, and bing it, for example with tape.
+Place the kinect on the PTU, and bind it, for example with tape, so that it doesn't move. Make sure to have enough wiggle-room for it's USB cable.
 
 ### Setting up FLIR-PTU-D64
 
