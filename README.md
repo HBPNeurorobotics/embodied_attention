@@ -26,3 +26,11 @@ Place the kinect on the PTU, and bind it, for example with tape, so that it does
 Use the following launcher:
 
     roslaunch saliency kinect.launch 
+    
+### Notes
+
+The weights used in the saliency model are placed in the following folder:
+
+    /disk/no_backup/jkaiser/saliency/
+
+Should these files move their path needs to be updated in the forward.py script.
