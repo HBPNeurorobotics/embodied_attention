@@ -1,7 +1,9 @@
 Embodied Attention
 ==================
 
-Saliency model that publishes joint states for the FLIR-PTU-D64 by focusing on interesting objects viewed by a Kinect mounted on top of the unit.
+Saliency model that publishes joint states for the FLIR-PTU-D64 by focusing on interesting objects viewed by a Kinect mounted on top of the unit. More info:
+
+    http://ids-wiki.fzi.de/index.php/HBP/Embodied-attention
 
 ### Dependencies
 
