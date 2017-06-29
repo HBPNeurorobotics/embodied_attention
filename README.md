@@ -26,21 +26,3 @@ Place the kinect on the PTU, and bind it, for example with tape, so that it does
 Use the following launcher:
 
     roslaunch saliency kinect.launch 
-    
-### Notes
-
-The weights used in the saliency model are placed in the following folder:
-
-    /disk/no_backup/jkaiser/saliency/
-
-Should these files move their path needs to be updated in the forward.py script.
-
-### Known issues
-
-Should the following issue arise:
-
-    Image: PrimeSense/SensorV2/5.1.0.41: Got a timeout while waiting for a network command to complete!
-    
-This is linked to the instability of openni_camera. openni2_camera may be a solution, but it has not yet been pursued since the Kinect camera did not work with it directly. 
-
-A possible quick-fix is to either change the workstation or simply wait. The issue generally resolves itself by the next day.
