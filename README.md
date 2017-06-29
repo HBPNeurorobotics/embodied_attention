@@ -19,7 +19,7 @@ http://ids-wiki.fzi.de/index.php/HBP/DVS-head
 
 ### Mounting Kinect
 
-Place the kinect on the PTU, and bind it, for example with tape, so that it doesn't move. Make sure to have enough wiggle-room for it's USB cable.
+Place the kinect on the PTU, and bind it, for example with tape, so that it doesn't move. Make sure to have enough wiggle room for it's USB cable.
 
 ### Launching the model
 
