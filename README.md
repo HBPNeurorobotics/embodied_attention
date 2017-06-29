@@ -7,10 +7,9 @@ Saliency model that publishes joint states for the FLIR-PTU-D64 by focusing on i
 
 Clone the OpenCV Vision repository from Github:
 
-    ```bash
     git clone https://github.com/ros-perception/vision_opencv.git
-    ```
-    Switch to the branch matching your ROS distribution release.
+
+Switch to the branch matching your ROS distribution release.
     
 ### Setting up FLIR-PTU-D64
 
@@ -26,5 +25,4 @@ Place the kinect on the PTU, and bind it, for example with tape, so that it does
 
 Use the following launcher:
 
-    ```bash
     roslaunch saliency kinect.launch 
