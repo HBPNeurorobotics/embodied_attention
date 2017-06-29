@@ -9,4 +9,5 @@ Saliency model that publishes joint states for the FLIR-PTU-D64 by focusing on i
     ```bash
     git clone https://github.com/ros-perception/vision_opencv.git
     ```
+    Switch to the branch matching your ROS distribution release.
 
