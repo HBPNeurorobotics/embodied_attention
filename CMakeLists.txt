@@ -7,7 +7,7 @@ project(saliency)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs image_transport)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs image_transport ros_holographic)
 find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
