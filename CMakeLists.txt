@@ -7,7 +7,7 @@ project(saliency)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs image_transport ros_holographic)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs image_transport cv_bridge image_geometry ros_holographic)
 find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
@@ -145,7 +145,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 # )
 
 add_executable(get_rays src/get_rays.cpp)
-target_link_libraries(get_rays ${catkin_LIBRARIES} ${OpenCV_LIBS} cv_bridge image_geometry)
+target_link_libraries(get_rays ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #############
 ## Install ##
