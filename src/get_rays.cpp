@@ -16,19 +16,23 @@
 #include <sstream>
 #include <iostream>
 
-ros::Publisher pubcmd;
-sensor_msgs::JointState j;
-image_transport::Publisher pubkps;
+sensor_msgs::JointState joint_cmd;
+ros::Publisher joint_cmd_pub;
+
+image_transport::Publisher keypoint_pub;
 cv::Ptr<cv::SimpleBlobDetector> detector;
 image_geometry::PinholeCameraModel model;
-sensor_msgs::CameraInfoConstPtr ptr;
-ros::Publisher pub_neck_yaw_pos;
-ros::Publisher pub_neck_pitch_pos;
+sensor_msgs::ImageConstPtr original_img;
+
 std_msgs::Float64 neck_yaw_pos;
 std_msgs::Float64 neck_pitch_pos;
+ros::Publisher neck_yaw_pos_pub;
+ros::Publisher neck_pitch_pos_pub;
+
 double x = 0, y = 0, thresh = 0.05;
-bool set = false;
+bool has_original_img = false;
 bool block = false;
+
 ros::ServiceClient memory_client;
 ros_holographic::NewObject obj;
 int counter = 0;
@@ -37,12 +41,12 @@ bool compare_size(cv::KeyPoint first, cv::KeyPoint second) {
   return first.size > second.size;
 }
 
-void imageCallback2(const sensor_msgs::ImageConstPtr& msg, const sensor_msgs::CameraInfoConstPtr& nptr) {
-  ptr = nptr;
-  set = true;
+void image_raw_callback(const sensor_msgs::ImageConstPtr& msg, const sensor_msgs::CameraInfoConstPtr& nptr) {
+  original_img = msg;
+  has_original_img = true;
 }
 
-void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
+void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
   // convert ros image to cv image
   cv::Mat mat = cv_bridge::toCvShare(msg, "bgr8")->image;
   // convert to gray scale image
@@ -50,47 +54,48 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
   // make too dark pixels black
   cv::threshold(mat, mat, 100, 255, 0);
   // resize
-  cv::resize(mat, mat, cv::Size(msg->width, msg->height));
+  cv::resize(mat, mat, cv::Size(original_img->width, original_img->height));
   // detect keypoints
   std::vector<cv::KeyPoint> keypoints;
   detector->detect(mat, keypoints);
   // make keypoints visible
-  cv::Mat kps;
-  cv::drawKeypoints(mat, keypoints, kps, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+  cv::Mat keypoint_img;
+  cv::drawKeypoints(mat, keypoints, keypoint_img, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
   std::sort(keypoints.begin(), keypoints.end(), compare_size);
   // convert to gray scale image
-  cv::cvtColor(kps, kps, CV_BGR2GRAY);
+  cv::cvtColor(keypoint_img, keypoint_img, CV_BGR2GRAY);
   // publish image
-  sensor_msgs::ImageConstPtr ikps;
-  ikps = cv_bridge::CvImage(std_msgs::Header(), "mono8", kps).toImageMsg();
-  pubkps.publish(ikps);
+  sensor_msgs::ImageConstPtr keypoint_msg;
+  keypoint_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", keypoint_img).toImageMsg();
+  keypoint_pub.publish(keypoint_msg);
 
-  if (keypoints.size() && set && !block) {
+  if (keypoints.size() && has_original_img && !block) {
     block = true;
-    ROS_ERROR_STREAM("" << model.fromCameraInfo(ptr));
     cv::Point3d p = model.projectPixelTo3dRay(keypoints[0].pt);
     double dx, dy;
     dx = atan(-p.x);
     dy = atan(-p.y / sqrt(p.x * p.x + 1)); // cartesian to polar coordinates
-    ROS_ERROR("keypoints: %f %f", keypoints[0].pt.x, keypoints[0].pt.y);
-    ROS_ERROR("differences: %f %f", dx, dy);
 
     // if (abs(dx) > thresh || abs(dy) > thresh) {
     x += dx;
     y += dy;
 
-    // send new joint state
-    j.header.stamp = ros::Time::now();
-    j.position[0] = x;
-    j.position[1] = y;
-    pubcmd.publish(j);
+    ROS_INFO("x: %f, y: %f", x, y);
+    ROS_INFO("3dray: %f, %f, %f", p.x, p.y, p.z);
+    ROS_INFO("dx: %f, dy %f", dx, dy);
+    ROS_INFO("keypoints[0].pt.x: %f, keypoints[0].pt.y: %f\n", keypoints[0].pt.x, keypoints[0].pt.y);
+
+    // send new joint command
+    joint_cmd.header.stamp = ros::Time::now();
+    joint_cmd.position[0] = x;
+    joint_cmd.position[1] = y;
+    joint_cmd_pub.publish(joint_cmd);
 
     // send new positions
-    std::cout << "going to look at: " << x << ", " << y << "\n";
     neck_yaw_pos.data = x;
     neck_pitch_pos.data = y;
-    pub_neck_yaw_pos.publish(neck_yaw_pos);
-    pub_neck_pitch_pos.publish(neck_pitch_pos);
+    neck_yaw_pos_pub.publish(neck_yaw_pos);
+    neck_pitch_pos_pub.publish(neck_pitch_pos);
 
     // send info to memory
     obj.request.X = x;
@@ -98,9 +103,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     std::stringstream sstm;
     sstm << "label no " << counter;
     obj.request.Label = sstm.str();
-    std::cout << "going to label 'label no " << counter << "' at: " << x << ", " << y << "\n";
-    counter++;
     memory_client.call(obj);
+    counter++;
 
     // }
     ros::Duration(5).sleep();
@@ -124,16 +128,16 @@ int main(int argc, char **argv) {
   params.minArea = 50;
   detector = cv::SimpleBlobDetector::create(params);
 
-  // initialize joint state
-  j.name.resize(2);
-  j.position.resize(2);
-  j.velocity.resize(2);
-  j.name[0] = "ptu_pan";
-  j.name[1] = "ptu_tilt";
-  j.velocity[0] = 0.25;
-  j.velocity[1] = 0.25;
-  j.position[0] = x;
-  j.position[1] = y;
+  // initialize joint command
+  joint_cmd.name.resize(2);
+  joint_cmd.position.resize(2);
+  joint_cmd.velocity.resize(2);
+  joint_cmd.name[0] = "ptu_pan";
+  joint_cmd.name[1] = "ptu_tilt";
+  joint_cmd.velocity[0] = 0.25;
+  joint_cmd.velocity[1] = 0.25;
+  joint_cmd.position[0] = x;
+  joint_cmd.position[1] = y;
 
   // initialize neck msgs
   neck_yaw_pos.data = x;
@@ -148,21 +152,21 @@ int main(int argc, char **argv) {
   memory_client = nh.serviceClient<ros_holographic::NewObject>("new_object");
 
   // advertise topics
-  pubkps = it.advertise("/kps_map",1);
-  pubcmd = nh.advertise<sensor_msgs::JointState>("/ptu/cmd", 1);
-  pub_neck_yaw_pos = nh.advertise<std_msgs::Float64>("/robot/neck_yaw/pos", 1);
-  pub_neck_pitch_pos = nh.advertise<std_msgs::Float64>("/robot/neck_pitch/pos", 1);
+  keypoint_pub = it.advertise("/kps_map",1);
+  joint_cmd_pub = nh.advertise<sensor_msgs::JointState>("/ptu/cmd", 1);
+  neck_yaw_pos_pub = nh.advertise<std_msgs::Float64>("/robot/neck_yaw/pos", 1);
+  neck_pitch_pos_pub = nh.advertise<std_msgs::Float64>("/robot/neck_pitch/pos", 1);
 
-  // publish first states
-  j.header.stamp = ros::Time::now();
-  pubcmd.publish(j);
-  pub_neck_yaw_pos.publish(neck_yaw_pos);
-  pub_neck_pitch_pos.publish(neck_pitch_pos);
+  // publish first joint commands
+  joint_cmd.header.stamp = ros::Time::now();
+  joint_cmd_pub.publish(joint_cmd);
+  neck_yaw_pos_pub.publish(neck_yaw_pos);
+  neck_pitch_pos_pub.publish(neck_pitch_pos);
   ros::Duration(10).sleep();
 
   // subscribe and do stuff
-  image_transport::Subscriber sub = it.subscribe("/saliency_map", 1, imageCallback);
-  image_transport::CameraSubscriber csub = it.subscribeCamera("/icub_model/left_eye_camera/image_raw", 1, imageCallback2);
+  image_transport::Subscriber sub = it.subscribe("/saliency_map", 1, saliency_map_callback);
+  image_transport::CameraSubscriber csub = it.subscribeCamera("/icub_model/left_eye_camera/image_raw", 1, image_raw_callback);
 
   ros::spin();
 
