@@ -23,6 +23,7 @@ image_transport::Publisher keypoint_pub;
 cv::Ptr<cv::SimpleBlobDetector> detector;
 image_geometry::PinholeCameraModel model;
 sensor_msgs::ImageConstPtr original_img;
+sensor_msgs::CameraInfoConstPtr original_img_info;
 
 std_msgs::Float64 neck_yaw_pos;
 std_msgs::Float64 neck_pitch_pos;
@@ -43,6 +44,7 @@ bool compare_size(cv::KeyPoint first, cv::KeyPoint second) {
 
 void image_raw_callback(const sensor_msgs::ImageConstPtr& msg, const sensor_msgs::CameraInfoConstPtr& nptr) {
   original_img = msg;
+  original_img_info = nptr;
   has_original_img = true;
 }
 
@@ -71,6 +73,7 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
 
   if (keypoints.size() && has_original_img && !block) {
     block = true;
+    model.fromCameraInfo(original_img_info);
     cv::Point3d p = model.projectPixelTo3dRay(keypoints[0].pt);
     double dx, dy;
     dx = atan(-p.x);
@@ -83,7 +86,8 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
     ROS_INFO("x: %f, y: %f", x, y);
     ROS_INFO("3dray: %f, %f, %f", p.x, p.y, p.z);
     ROS_INFO("dx: %f, dy %f", dx, dy);
-    ROS_INFO("keypoints[0].pt.x: %f, keypoints[0].pt.y: %f\n", keypoints[0].pt.x, keypoints[0].pt.y);
+    ROS_INFO("keypoint x: %f, y: %f", keypoints[0].pt.x, keypoints[0].pt.y);
+    ROS_INFO("---");
 
     // send new joint command
     joint_cmd.header.stamp = ros::Time::now();
