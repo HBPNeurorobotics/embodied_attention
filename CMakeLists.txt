@@ -145,6 +145,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 # )
 
 add_executable(get_rays src/get_rays.cpp)
+add_dependencies(get_rays ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(get_rays ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #############
