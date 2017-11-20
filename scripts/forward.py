@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-PKG = 'saliency'
+PKG = 'embodied_attention'
 import roslib; roslib.load_manifest(PKG)
 
 import cv2 as cv
@@ -10,6 +10,7 @@ import rospy
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 import sys
+import os
 
 height = 168
 width = 224
@@ -41,26 +42,22 @@ def rescale(img, height, width):
 
     return img
 
-def get_data():
-    tmp = cv.imread('image.jpg', 1)
-    tmp = rescale(tmp, height, width)
-    tmp = tmp.astype(np.float32)
-    tmp = tmp.transpose(2, 0, 1)
-
-    return tmp
-
-def use_model(img):
-    model = load_model('/disk/no_backup/lesi/Saliency/model.hdf5')
-    model.load_weights('/disk/no_backup/lesi/Saliency/weights.hdf5')
-    tmp = model.predict(img[np.newaxis, :, :, :])
-
-    return tmp
-
-
 class Saliency():
     def __init__(self):
-        self.model = load_model('/disk/no_backup/jkaiser/saliency/Saliency/model.hdf5')
-        self.model.load_weights('/disk/no_backup/jkaiser/saliency/Saliency/weights.hdf5')
+        model_file = rospy.get_param('~saliency_model_file', '/tmp/model.hdf5')
+        weight_file = rospy.get_param('~saliency_weight_file', '/tmp/weights.hdf5')
+
+        if (not os.path.exists(model_file) or not os.path.exists(weight_file)):
+            rospy.logwarn("Model files not present:\n\t{}\n\t{}\nWe will download them from owncloud."
+                          .format(model_file, weight_file))
+            import wget
+            import ssl
+            ssl._create_default_https_context = ssl._create_unverified_context
+            wget.download("https://neurorobotics-files.net/owncloud/index.php/s/rnU4XXGGVowynfQ/download", model_file)
+            wget.download("https://neurorobotics-files.net/owncloud/index.php/s/ZfaI1W565pLKxVE/download", weight_file)
+
+        self.model = load_model(model_file)
+        self.model.load_weights(weight_file)
         image_sub = rospy.Subscriber("/rgb/image_raw", Image, self.image_callback, queue_size=1,  buff_size=2**24)
         self.saliency_pub = rospy.Publisher("/saliency_map", Image, queue_size=1)
 
@@ -89,11 +86,6 @@ def main(args):
     rospy.init_node("saliency")
     saliency = Saliency()
     rospy.spin()
-    # img = get_data()
-
-    # res = use_model(img)
-
-    # make_plot(img, res)
 
 if __name__ == '__main__':
     main(sys.argv)
