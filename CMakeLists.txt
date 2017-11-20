@@ -7,7 +7,8 @@ project(embodied_attention)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs image_transport cv_bridge image_geometry ros_holographic)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs image_transport cv_bridge image_geometry)
+find_package(ros_holographic OPTIONAL_COMPONENTS)
 find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
@@ -143,10 +144,14 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-
-add_executable(get_rays src/get_rays.cpp)
-add_dependencies(get_rays ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(get_rays ${catkin_LIBRARIES} ${OpenCV_LIBS})
+if(ros_holographic_FOUND)
+  message(WARNING "Holographic memory is present")
+  add_executable(get_rays src/get_rays.cpp)
+  add_dependencies(get_rays ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(get_rays ${catkin_LIBRARIES} ${OpenCV_LIBS})
+else()
+  message(WARNING "Building without support for holographic memory")
+endif()
 
 #############
 ## Install ##
