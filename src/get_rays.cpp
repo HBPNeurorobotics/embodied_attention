@@ -20,6 +20,7 @@ sensor_msgs::JointState joint_cmd;
 ros::Publisher joint_cmd_pub;
 
 image_transport::Publisher keypoint_pub;
+image_transport::Publisher roi_pub;
 cv::Ptr<cv::SimpleBlobDetector> detector;
 image_geometry::PinholeCameraModel model;
 sensor_msgs::ImageConstPtr original_img;
@@ -62,8 +63,21 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
   detector->detect(mat, keypoints);
   // make keypoints visible
   cv::Mat keypoint_img;
-  cv::drawKeypoints(mat, keypoints, keypoint_img, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
   std::sort(keypoints.begin(), keypoints.end(), compare_size);
+  cv::drawKeypoints(mat, keypoints, keypoint_img, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+
+  // set and draw roi
+  int k_x = keypoints.at(0).pt.x;
+  int k_y = keypoints.at(0).pt.y;
+  int size = keypoints.at(0).size/2;
+  ROS_INFO("keypoint: x: %d, y: %d, size: %d", k_x, k_y, size);
+  int x_1 = std::max(0, k_x - size);
+  int x_2 = std::min(mat.cols - 1, k_x + size);
+  int y_1 = std::max(0, k_y - size);
+  int y_2 = std::min(mat.rows - 1, k_y + size);
+  ROS_INFO("roi: x1: %d, y1: %d, x2: %d, y2: %d", x_1, y_1, x_2, y_2);
+  cv::rectangle(keypoint_img, cv::Point(x_1, y_1), cv::Point(x_2, y_2), cv::Scalar(255, 0, 0));
+
   // convert to gray scale image
   cv::cvtColor(keypoint_img, keypoint_img, CV_BGR2GRAY);
   // publish image
@@ -83,10 +97,9 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
     x += dx;
     y += dy;
 
-    ROS_INFO("x: %f, y: %f", x, y);
     ROS_INFO("3dray: %f, %f, %f", p.x, p.y, p.z);
-    ROS_INFO("dx: %f, dy %f", dx, dy);
-    ROS_INFO("keypoint x: %f, y: %f", keypoints[0].pt.x, keypoints[0].pt.y);
+    ROS_INFO("dx: %f, dy: %f", dx, dy);
+    ROS_INFO("x: %f, y: %f", x, y);
     ROS_INFO("---");
 
     // send new joint command
@@ -100,6 +113,13 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
     neck_pitch_pos.data = y;
     neck_yaw_pos_pub.publish(neck_yaw_pos);
     neck_pitch_pos_pub.publish(neck_pitch_pos);
+
+    // publish roi
+    cv::Mat mat_2 = cv_bridge::toCvShare(original_img, "bgr8")->image;
+    cv::Rect roi(x_1, y_1, x_2 - x_1, y_2 - y_1);
+    cv::Mat region = mat_2(roi);
+    sensor_msgs::ImageConstPtr cropped_img = cv_bridge::CvImage(std_msgs::Header(), "bgr8", region).toImageMsg();
+    roi_pub.publish(cropped_img);
 
     // send info to memory
     obj.request.X = x;
@@ -156,7 +176,8 @@ int main(int argc, char **argv) {
   memory_client = nh.serviceClient<ros_holographic::NewObject>("new_object");
 
   // advertise topics
-  keypoint_pub = it.advertise("/kps_map",1);
+  keypoint_pub = it.advertise("/kps_map", 1);
+  roi_pub = it.advertise("/roi", 1);
   joint_cmd_pub = nh.advertise<sensor_msgs::JointState>("/ptu/cmd", 1);
   neck_yaw_pos_pub = nh.advertise<std_msgs::Float64>("/robot/neck_yaw/pos", 1);
   neck_pitch_pos_pub = nh.advertise<std_msgs::Float64>("/robot/neck_pitch/pos", 1);
