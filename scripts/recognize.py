@@ -27,28 +27,28 @@ width = 224
 
 def rescale(img, height, width):
   if len(img.shape) == 3:
-      h, w, _ = img.shape
+    h, w, _ = img.shape
   elif len(img.shape) == 2:
-      h, w = img.shape
+    h, w = img.shape
   
   if (float(height)/h) > (float(width)/w):
-      img = resize(img, (height, w*height/h),
+    img = resize(img, (height, w*height/h),
                                      order=3, preserve_range=True)
   else:
-      img = resize(img, (h*width/w, width),
+    img = resize(img, (h*width/w, width),
                                      order=3, preserve_range=True)
   
   if len(img.shape) == 3:
-      h, w, _ = img.shape
+    h, w, _ = img.shape
   elif len(img.shape) == 2:
-      h, w = img.shape
+    h, w = img.shape
   
   img = img[h//2-(height/2):h//2+(height/2), w//2-(width/2):w//2+(width/2)]
   
   if len(img.shape) == 3:
-      img[:, :, 0] -= 103.939
-      img[:, :, 1] -= 116.779
-      img[:, :, 2] -= 123.68
+    img[:, :, 0] -= 103.939
+    img[:, :, 1] -= 116.779
+    img[:, :, 2] -= 123.68
   
   return img
 
@@ -58,9 +58,9 @@ graph = tf.get_default_graph()
 
 def recognize(roi):
   try:
-      frame = CvBridge().imgmsg_to_cv2(roi.RequestRoi, "bgr8")
+    frame = CvBridge().imgmsg_to_cv2(roi.RequestRoi, "bgr8")
   except CvBridgeError, e:
-      print e
+    print e
 
   x = rescale(frame, height, width)
   x = x.astype(np.float32)
@@ -75,12 +75,10 @@ def recognize(roi):
     print('Identified as: ', preds[0][1])
     return preds[0][1]
 
-
 def main(args):
   rospy.init_node("recognize")
   s = rospy.Service('recognize', Roi, recognize)
   rospy.spin()
-
 
 if __name__ == '__main__':
   main(sys.argv)

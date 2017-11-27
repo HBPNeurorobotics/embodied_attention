@@ -128,13 +128,13 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
     recognizer_srv.request.RequestRoi = *cropped_img;
     recognizer_client.call(recognizer_srv);
     std::string label = (std::string) recognizer_srv.response.Label;
-    ROS_INFO("label: \n%s", label.c_str());
+    ROS_INFO("label: %s", label.c_str());
 
     // send info to memory
     memory_srv.request.X = x;
     memory_srv.request.Y = y;
     memory_srv.request.Label = label;
-    ROS_INFO("calling memory: %f %f %s\n", x, y, label.c_str());
+    ROS_INFO("calling memory: %f %f %s", x, y, label.c_str());
     memory_client.call(memory_srv);
 
     // }
