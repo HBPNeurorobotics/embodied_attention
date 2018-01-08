@@ -16,27 +16,32 @@
 #include <sstream>
 #include <iostream>
 
+#include "embodied_attention/Roi.h"
+
 sensor_msgs::JointState joint_cmd;
 ros::Publisher joint_cmd_pub;
 
 image_transport::Publisher keypoint_pub;
+image_transport::Publisher roi_pub;
 cv::Ptr<cv::SimpleBlobDetector> detector;
 image_geometry::PinholeCameraModel model;
 sensor_msgs::ImageConstPtr original_img;
 sensor_msgs::CameraInfoConstPtr original_img_info;
 
-std_msgs::Float64 neck_yaw_pos;
-std_msgs::Float64 neck_pitch_pos;
 ros::Publisher neck_yaw_pos_pub;
 ros::Publisher neck_pitch_pos_pub;
+std_msgs::Float64 neck_yaw_pos;
+std_msgs::Float64 neck_pitch_pos;
+
+ros::ServiceClient recognizer_client;
+embodied_attention::Roi recognizer_srv;
+
+ros::ServiceClient memory_client;
+ros_holographic::NewObject memory_srv;
 
 double x = 0, y = 0, thresh = 0.05;
 bool has_original_img = false;
 bool block = false;
-
-ros::ServiceClient memory_client;
-ros_holographic::NewObject obj;
-int counter = 0;
 
 bool compare_size(cv::KeyPoint first, cv::KeyPoint second) {
   return first.size > second.size;
@@ -62,8 +67,21 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
   detector->detect(mat, keypoints);
   // make keypoints visible
   cv::Mat keypoint_img;
-  cv::drawKeypoints(mat, keypoints, keypoint_img, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
   std::sort(keypoints.begin(), keypoints.end(), compare_size);
+  cv::drawKeypoints(mat, keypoints, keypoint_img, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+
+  // set and draw roi
+  int k_x = keypoints.at(0).pt.x;
+  int k_y = keypoints.at(0).pt.y;
+  int size = keypoints.at(0).size;
+  ROS_INFO("keypoint: x: %d, y: %d, size: %d", k_x, k_y, size);
+  int x_1 = std::max(0, k_x - size);
+  int x_2 = std::min(mat.cols - 1, k_x + size);
+  int y_1 = std::max(0, k_y - size);
+  int y_2 = std::min(mat.rows - 1, k_y + size);
+  ROS_INFO("roi: x1: %d, y1: %d, x2: %d, y2: %d", x_1, y_1, x_2, y_2);
+  cv::rectangle(keypoint_img, cv::Point(x_1, y_1), cv::Point(x_2, y_2), cv::Scalar(255, 0, 0));
+
   // convert to gray scale image
   cv::cvtColor(keypoint_img, keypoint_img, CV_BGR2GRAY);
   // publish image
@@ -83,11 +101,9 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
     x += dx;
     y += dy;
 
-    ROS_INFO("x: %f, y: %f", x, y);
     ROS_INFO("3dray: %f, %f, %f", p.x, p.y, p.z);
-    ROS_INFO("dx: %f, dy %f", dx, dy);
-    ROS_INFO("keypoint x: %f, y: %f", keypoints[0].pt.x, keypoints[0].pt.y);
-    ROS_INFO("---");
+    ROS_INFO("dx: %f, dy: %f", dx, dy);
+    ROS_INFO("x: %f, y: %f", x, y);
 
     // send new joint command
     joint_cmd.header.stamp = ros::Time::now();
@@ -101,16 +117,28 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
     neck_yaw_pos_pub.publish(neck_yaw_pos);
     neck_pitch_pos_pub.publish(neck_pitch_pos);
 
+    // publish roi
+    cv::Mat mat_2 = cv_bridge::toCvShare(original_img, "bgr8")->image;
+    cv::Rect roi(x_1, y_1, x_2 - x_1, y_2 - y_1);
+    cv::Mat region = mat_2(roi);
+    sensor_msgs::ImageConstPtr cropped_img = cv_bridge::CvImage(std_msgs::Header(), "bgr8", region).toImageMsg();
+    roi_pub.publish(cropped_img);
+
+    // call object recognition
+    recognizer_srv.request.RequestRoi = *cropped_img;
+    recognizer_client.call(recognizer_srv);
+    std::string label = (std::string) recognizer_srv.response.Label;
+    ROS_INFO("label: %s", label.c_str());
+
     // send info to memory
-    obj.request.X = x;
-    obj.request.Y = y;
-    std::stringstream sstm;
-    sstm << "label no " << counter;
-    obj.request.Label = sstm.str();
-    memory_client.call(obj);
-    counter++;
+    memory_srv.request.X = x;
+    memory_srv.request.Y = y;
+    memory_srv.request.Label = label;
+    ROS_INFO("calling memory: %f %f %s", x, y, label.c_str());
+    memory_client.call(memory_srv);
 
     // }
+    ROS_INFO("---");
     ros::Duration(5).sleep();
 
     block = false;
@@ -152,11 +180,9 @@ int main(int argc, char **argv) {
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
 
-  // initialize memory client
-  memory_client = nh.serviceClient<ros_holographic::NewObject>("new_object");
-
   // advertise topics
-  keypoint_pub = it.advertise("/kps_map",1);
+  keypoint_pub = it.advertise("/kps_map", 1);
+  roi_pub = it.advertise("/roi", 1);
   joint_cmd_pub = nh.advertise<sensor_msgs::JointState>("/ptu/cmd", 1);
   neck_yaw_pos_pub = nh.advertise<std_msgs::Float64>("/robot/neck_yaw/pos", 1);
   neck_pitch_pos_pub = nh.advertise<std_msgs::Float64>("/robot/neck_pitch/pos", 1);
@@ -167,6 +193,12 @@ int main(int argc, char **argv) {
   neck_yaw_pos_pub.publish(neck_yaw_pos);
   neck_pitch_pos_pub.publish(neck_pitch_pos);
   ros::Duration(10).sleep();
+
+  // initialize recognize client
+  recognizer_client = nh.serviceClient<embodied_attention::Roi>("recognize");
+
+  // initialize memory client
+  memory_client = nh.serviceClient<ros_holographic::NewObject>("new_object");
 
   // subscribe and do stuff
   image_transport::Subscriber sub = it.subscribe("/saliency_map", 1, saliency_map_callback);
