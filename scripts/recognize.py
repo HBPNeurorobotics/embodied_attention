@@ -51,32 +51,38 @@ def rescale(img, height, width):
   
   return img
 
-model = MobileNet(input_shape=None, alpha=1.0, depth_multiplier=1, dropout=1e-3, include_top=True, weights='imagenet', input_tensor=None, pooling=None, classes=1000)
-model._make_predict_function()
-graph = tf.get_default_graph()
+class Recognize():
+    def __init__(self):
+        self.model = MobileNet(input_shape=None, alpha=1.0, depth_multiplier=1, dropout=1e-3, include_top=True, weights='imagenet', input_tensor=None, pooling=None, classes=1000)
+        self.model._make_predict_function()
+        self.graph = tf.get_default_graph()
+        s = rospy.Service('recognize', Roi, self.recognize)
 
-def recognize(roi):
-  try:
-    frame = CvBridge().imgmsg_to_cv2(roi.RequestRoi, "bgr8")
-  except CvBridgeError, e:
-    print e
+    def recognize(self, roi):
+      try:
+        frame = CvBridge().imgmsg_to_cv2(roi.RequestRoi, "bgr8")
+      except CvBridgeError, e:
+        print e
 
-  x = rescale(frame, height, width)
-  x = x.astype(np.float32)
+      x = rescale(frame, height, width)
+      x = x.astype(np.float32)
 
-  x = np.expand_dims(x, axis=0)
-  x = preprocess_input(x)
+      x = np.expand_dims(x, axis=0)
+      x = preprocess_input(x)
 
-  with graph.as_default():
-    preds = model.predict(x)
-    preds = decode_predictions(preds, top=10)[0]
-    print('Predicitions: ', str(preds))
-    print('Identified as: ', preds[0][1])
-    return preds[0][1]
+      with self.graph.as_default():
+        preds = self.model.predict(x)
+        preds = decode_predictions(preds, top=10)[0]
+        print 'Predicitions:'
+        for item in preds:
+            print '\t%s: %f' % (item[1], item [2])
+        print 'Identified as: %s' % preds[0][1]
+        print
+        return preds[0][1]
 
 def main(args):
   rospy.init_node("recognize")
-  s = rospy.Service('recognize', Roi, recognize)
+  Recognize()
   rospy.spin()
 
 if __name__ == '__main__':
