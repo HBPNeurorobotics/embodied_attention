@@ -14,7 +14,6 @@ from cv_bridge import CvBridge, CvBridgeError
 from skimage.transform import resize
 
 from keras.applications.mobilenet import MobileNet
-from keras.preprocessing import image as kimage
 from keras.applications.mobilenet import preprocess_input, decode_predictions
 
 from embodied_attention.srv import Roi
