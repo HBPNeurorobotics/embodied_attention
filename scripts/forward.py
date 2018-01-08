@@ -66,10 +66,20 @@ def pad_image(img, tar_h, tar_w):
 class Saliency():
     def __init__(self):
         self.model_path = rospy.get_param('~saliency_tensorflow_file', '/tmp/model.ckpt')
-        image_sub = rospy.Subscriber("/rgb/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         self.saliency_pub = rospy.Publisher("/saliency_map", Image, queue_size=1)
         self.cv_bridge = CvBridge()
 
+        self.sess = tf.Session()
+        self.net = tf.train.import_meta_graph(self.model_path + ".meta")
+        self.net.restore(self.sess, self.model_path)
+        graph = tf.get_default_graph()
+        self.output = graph.get_operation_by_name("conv2d_8/BiasAdd").outputs[0]
+        self.input = graph.get_tensor_by_name("Placeholder_1:0")
+
+        image_sub = rospy.Subscriber("/rgb/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
+
+    def __del__(self):
+        self.sess.close()
 
     def image_callback(self, ros_image):
         # Use cv_bridge() to convert the ROS image to OpenCV format
@@ -93,14 +103,7 @@ class Saliency():
 
         tf.reset_default_graph()
 
-        with tf.Session() as sess:
-            net = tf.train.import_meta_graph(self.model_path + ".meta")
-            net.restore(sess, self.model_path)
-    
-            graph = tf.get_default_graph()
-            output = graph.get_operation_by_name("conv2d_8/BiasAdd").outputs[0]
-            input = graph.get_tensor_by_name("Placeholder_1:0")
-            saliency = sess.run(output, feed_dict={input: stim})
+        saliency = self.sess.run(self.output, feed_dict={self.input: stim})
 
         saliency = saliency.squeeze()
         saliency = (saliency - saliency.min()) / (saliency.max() - saliency.min()) * 255. # is this correct?
