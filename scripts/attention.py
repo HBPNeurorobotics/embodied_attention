@@ -79,12 +79,18 @@ class Attention():
             roi = CvBridge().cv2_to_imgmsg(roi, "bgr8")
             self.roi_pub.publish(roi)
 
-            # object recognition
-            label = self.recognizer(roi).Label
+            try:
+                # object recognition
+                label = self.recognizer(roi).Label
+                try:
+                    # store in memory
+                    self.memory(self.x * 100, self.y * 100, label)
+                    print "\tstored in memory: %d, %d, %s" % (self.x * 100, self.y * 100, label)
+                except rospy.ServiceException:
+                    print "\tmemory service call failed"
+            except rospy.ServiceException:
+                print "\trecognize service call failed"
 
-            # store in memory
-            self.memory(self.x * 100, self.y * 100, label)
-            print "stored in memory: %d, %d, %s" % (self.x * 100, self.y * 100, label)
         else:
             print "but information is missing"
 
