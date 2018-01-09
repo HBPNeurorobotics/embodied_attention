@@ -13,7 +13,6 @@ import sys
 class Visualizer():
     def __init__(self):
         image_sub = rospy.Subscriber("/icub_model/left_eye_camera/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
-        saliency_sub = rospy.Subscriber("/saliency_map", Image, self.saliency_callback, queue_size=1, buff_size=2**24)
 
         target_sub = rospy.Subscriber("/saccade_target", Point, self.target_callback, queue_size=1, buff_size=2**24)
         potential_target_sub = rospy.Subscriber("/saccade_potential_target", Point, self.potential_target_callback, queue_size=1, buff_size=2**24)
@@ -24,29 +23,31 @@ class Visualizer():
         self.image_augmented_pub = rospy.Publisher("/image_visualized", Image, queue_size=1)
 
         self.image = None
-        self.saliency = None
 
         self.targets = []
         self.potential_targets = []
 
+        self.saliency_width = float(rospy.get_param('~saliency_width', '256'))
+        self.saliency_height = float(rospy.get_param('~saliency_height', '192'))
+
     def target_callback(self, target):
         # scale to camera image size
-        x = int(target.x * (float(self.image.width)/self.saliency.width))
-        y = int(target.y * (float(self.image.height)/self.saliency.height))
+        x = int(target.x * (float(self.image.width)/self.saliency_width))
+        y = int(target.y * (float(self.image.height)/self.saliency_height))
 
         self.targets.append((x, y))
         self.publish()
 
     def potential_target_callback(self, target):
         # scale to camera image size
-        x = int(target.x * (float(self.image.width)/self.saliency.width))
-        y = int(target.y * (float(self.image.height)/self.saliency.height))
+        x = int(target.x * (float(self.image.width)/self.saliency_width))
+        y = int(target.y * (float(self.image.height)/self.saliency_height))
 
         self.potential_targets.append((x, y))
         self.publish()
 
     def publish(self):
-        if self.image is not None and self.saliency is not None:
+        if self.image is not None:
             image = CvBridge().imgmsg_to_cv2(self.image, "bgr8")
 
             # visualization
@@ -62,9 +63,6 @@ class Visualizer():
 
     def image_callback(self, image):
         self.image = image
-
-    def saliency_callback(self, image):
-        self.saliency = image
 
     def pan_callback(self, pos):
         self.targets = []
