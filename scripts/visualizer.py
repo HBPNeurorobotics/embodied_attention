@@ -52,9 +52,9 @@ class Visualizer():
 
             # visualization
             for t in self.potential_targets:
-                image[t[1], t[0]] = (0, 255, 0)
+                cv.circle(image, (t[0], t[1]), 2, (0, 255, 0))
             for t in self.targets:
-                image[t[1], t[0]] = (0, 0, 255)
+                cv.circle(image, (t[0], t[1]), 2, (0, 0, 255))
 
             image = CvBridge().cv2_to_imgmsg(image, "bgr8")
             self.image_augmented_pub.publish(image)
