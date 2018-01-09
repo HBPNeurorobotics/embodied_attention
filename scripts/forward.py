@@ -65,7 +65,7 @@ def pad_image(img, tar_h, tar_w):
 
 class Saliency():
     def __init__(self):
-        self.model_path = rospy.get_param('~saliency_tensorflow_file', '/tmp/model.ckpt')
+        self.model_path = rospy.get_param('~saliency_file', '/tmp/model.ckpt')
         self.saliency_pub = rospy.Publisher("/saliency_map", Image, queue_size=1)
         self.cv_bridge = CvBridge()
 
