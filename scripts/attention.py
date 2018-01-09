@@ -23,7 +23,6 @@ class Attention():
         saccade_sub = rospy.Subscriber("/saccade_target", Point, self.saccade_callback, queue_size=1, buff_size=2**24)
         camera_sub = rospy.Subscriber("/icub_model/left_eye_camera/image_raw", Image, self.camera_callback, queue_size=1, buff_size=2**24)
         camera_info_sub = rospy.Subscriber("/icub_model/left_eye_camera/camera_info", CameraInfo, self.camera_info_callback, queue_size=1, buff_size=2**24)
-        saliency_sub = rospy.Subscriber("/saliency_map", Image, self.saliency_callback, queue_size=1, buff_size=2**24)
 
         self.pan_pub = rospy.Publisher("/robot/left_eye_pan/pos", Float64, queue_size=1)
         self.tilt_pub = rospy.Publisher("/robot/eye_tilt/pos", Float64, queue_size=1)
@@ -37,7 +36,6 @@ class Attention():
 
         self.camera = None
         self.camera_info = None
-        self.saliency = None
         self.model = PinholeCameraModel()
 
         self.x = 0.
@@ -45,11 +43,14 @@ class Attention():
 
         self.limit = 0.942477796 
 
+        self.saliency_width = rospy.get_param('~saliency_width', '256')
+        self.saliency_height = rospy.get_param('~saliency_height', '192')
+
     def saccade_callback(self, saccade):
-        if self.camera is not None and self.camera_info is not None and self.saliency is not None:
+        if self.camera is not None and self.camera_info is not None:
             # scale to camera image size
-            x = int(saccade.x * (float(self.camera.width)/self.saliency.width))
-            y = int(saccade.y * (float(self.camera.height)/self.saliency.height))
+            x = int(saccade.x * (float(self.camera.width)/self.saliency_width))
+            y = int(saccade.y * (float(self.camera.height)/self.saliency_height))
 
             # compute target in polar coordinates
             self.model.fromCameraInfo(self.camera_info)
@@ -92,9 +93,6 @@ class Attention():
 
     def camera_info_callback(self, camera_info):
         self.camera_info = camera_info
-
-    def saliency_callback(self, saliency):
-        self.saliency = saliency
 
     def look(self, label):
         # ask memory for label
