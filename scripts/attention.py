@@ -43,8 +43,8 @@ class Attention():
 
         self.limit = 0.942477796 
 
-        self.saliency_width = rospy.get_param('~saliency_width', '256')
-        self.saliency_height = rospy.get_param('~saliency_height', '192')
+        self.saliency_width = float(rospy.get_param('~saliency_width', '256'))
+        self.saliency_height = float(rospy.get_param('~saliency_height', '192'))
 
     def saccade_callback(self, saccade):
         if self.camera is not None and self.camera_info is not None:
