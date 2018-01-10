@@ -10,10 +10,7 @@ from geometry_msgs.msg import Point
 import sys
 import os
 import numpy as np                                                                                                                                                                                                         
-import matplotlib.pyplot as plt
 from scipy import misc
-
-import thread
 
 ## functions
 def gauss(x, y, X, Y, sigma):

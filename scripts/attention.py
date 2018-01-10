@@ -13,10 +13,6 @@ from cv_bridge import CvBridge, CvBridgeError
 import sys
 import os
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy import misc
-
-import thread
 
 class Attention():
     def __init__(self):
