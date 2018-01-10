@@ -85,7 +85,7 @@ class Saliency():
         # Use cv_bridge() to convert the ROS image to OpenCV format
         try:
             frame = self.cv_bridge.imgmsg_to_cv2(ros_image, "bgr8")
-        except CvBridgeError, e:
+        except CvBridgeError as e:
             print e
 
         stim = rescale_image(frame, img_height, img_width)
@@ -109,7 +109,11 @@ class Saliency():
         saliency = (saliency - saliency.min()) / (saliency.max() - saliency.min()) * 255. # is this correct?
         saliency = np.uint8(saliency)
 
-        res_msg = CvBridge().cv2_to_imgmsg(saliency, "mono8")
+        try:
+            res_msg = self.cv_bridge.cv2_to_imgmsg(saliency, "mono8")
+        except CvBridgeError as e:
+            print e
+
         self.saliency_pub.publish(res_msg)
 
 

@@ -30,6 +30,8 @@ class Visualizer():
         self.saliency_width = float(rospy.get_param('~saliency_width', '256'))
         self.saliency_height = float(rospy.get_param('~saliency_height', '192'))
 
+        self.cv_bridge = CvBridge()
+
     def target_callback(self, target):
         # scale to camera image size
         x = int(target.x * (float(self.image.width)/self.saliency_width))
@@ -48,7 +50,10 @@ class Visualizer():
 
     def publish(self):
         if self.image is not None:
-            image = CvBridge().imgmsg_to_cv2(self.image, "bgr8")
+            try:
+                image = self.cv_bridge.imgmsg_to_cv2(self.image, "bgr8")
+            except CvBridgeError as e:
+                print e
 
             # visualization
             for t in self.potential_targets:
@@ -56,7 +61,11 @@ class Visualizer():
             for t in self.targets:
                 cv.circle(image, (t[0], t[1]), 2, (0, 0, 255))
 
-            image = CvBridge().cv2_to_imgmsg(image, "bgr8")
+            try:
+                image = self.cv_bridge.cv2_to_imgmsg(image, "bgr8")
+            except CvBridgeError as e:
+                print e
+
             self.image_augmented_pub.publish(image)
         else:
             print "but information is missing"
