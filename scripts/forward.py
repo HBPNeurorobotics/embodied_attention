@@ -9,6 +9,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
+import os
 
 def rescale_image(img, new_h, new_w):
     img_h, img_w = img.shape[:2]
@@ -58,13 +59,28 @@ def pad_image(img, new_h, new_w):
 
 class Saliency():
     def __init__(self):
-        self.model_path = rospy.get_param('~saliency_file', '/tmp/model.ckpt')
+        model_file = rospy.get_param('~saliency_file', '/tmp/model.ckpt')
+
+        meta_file = model_file + ".meta"
+        index_file = model_file + ".index"
+        data_file = model_file + ".data-00000-of-00001"
+
+        if (not os.path.exists(meta_file) or not os.path.exists(index_file) or not os.path.exists(data_file)):
+            rospy.logwarn("Model files not present:\n\t{}\n\t{}\n\t{}\nWe will download them from owncloud."
+                .format(meta_file, index_file, data_file))
+            import wget
+            import ssl
+            ssl._create_default_https_context = ssl._create_unverified_context
+            wget.download("https://neurorobotics-files.net/owncloud/index.php/s/TNpWFSX8xLvfbYD/download", meta_file)
+            wget.download("https://neurorobotics-files.net/owncloud/index.php/s/sDCFUGTrzJyhDA5/download", index_file)
+            wget.download("https://neurorobotics-files.net/owncloud/index.php/s/Scti429S7D11tMv/download", data_file)
+
         self.saliency_pub = rospy.Publisher("/saliency_map", Image, queue_size=1)
         self.cv_bridge = CvBridge()
 
         self.sess = tf.Session()
-        self.net = tf.train.import_meta_graph(self.model_path + ".meta")
-        self.net.restore(self.sess, self.model_path)
+        self.net = tf.train.import_meta_graph(model_file + ".meta")
+        self.net.restore(self.sess, model_file)
         graph = tf.get_default_graph()
         self.output = graph.get_operation_by_name("conv2d_8/BiasAdd").outputs[0]
         self.input = graph.get_tensor_by_name("Placeholder_1:0")
