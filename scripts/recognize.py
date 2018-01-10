@@ -58,10 +58,12 @@ class Recognize():
         self.graph = tf.get_default_graph()
         s = rospy.Service('recognize', Roi, self.recognize)
 
+        self.cv_bridge = CvBridge()
+
     def recognize(self, roi):
       try:
-        frame = CvBridge().imgmsg_to_cv2(roi.RequestRoi, "bgr8")
-      except CvBridgeError, e:
+        frame = self.cv_bridge.imgmsg_to_cv2(roi.RequestRoi, "bgr8")
+      except CvBridgeError as e:
         print e
 
       x = rescale(frame, height, width)

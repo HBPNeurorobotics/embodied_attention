@@ -62,11 +62,17 @@ class Saccade():
         self.target_pub = rospy.Publisher("/saccade_target", Point, queue_size=1)
         self.potential_target_pub = rospy.Publisher("/saccade_potential_target", Point, queue_size=1)
 
+        self.cv_bridge = CvBridge()
+
     # numerical integration (simple Euler)
     def saliency_callback(self, saliency_map):
 
         # handle input
-        sal = CvBridge().imgmsg_to_cv2(saliency_map, "mono8")
+        try:
+            sal = self.cv_bridge.imgmsg_to_cv2(saliency_map, "mono8")
+        except CvBridgeError as e:
+            print e
+
         sal = misc.imresize(sal, [self.Ns, self.Ns])
         sal = np.reshape(sal, [self.N, ])/235.*0.55+.2
 

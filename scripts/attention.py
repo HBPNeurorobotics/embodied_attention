@@ -42,6 +42,8 @@ class Attention():
         self.saliency_width = float(rospy.get_param('~saliency_width', '256'))
         self.saliency_height = float(rospy.get_param('~saliency_height', '192'))
 
+        self.cv_bridge = CvBridge()
+
     def saccade_callback(self, saccade):
         if self.camera is not None and self.camera_info is not None:
             # scale to camera image size
@@ -70,9 +72,18 @@ class Attention():
             x2 = self.camera_info.width/2 + size
             y2 = self.camera_info.height/2 + size
 
-            image = CvBridge().imgmsg_to_cv2(self.camera, "bgr8")
+            try:
+                image = self.cv_bridge.imgmsg_to_cv2(self.camera, "bgr8")
+            except CvBridgeError as e:
+                print e
+
             roi = image[y1:y2, x1:x2]
-            roi = CvBridge().cv2_to_imgmsg(roi, "bgr8")
+
+            try:
+                roi = self.cv_bridge.cv2_to_imgmsg(roi, "bgr8")
+            except CvBridgeError as e:
+                print e
+
             self.roi_pub.publish(roi)
 
             try:
