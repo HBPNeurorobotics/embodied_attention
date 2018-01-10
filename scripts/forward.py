@@ -15,20 +15,18 @@ from cv_bridge import CvBridge, CvBridgeError
 img_height = 192
 img_width = 256
 
-def rescale_image(img, tar_h, tar_w):
+def rescale_image(img, new_h, new_w):
     img_h, img_w = img.shape[:2]
 
-    if img_h > tar_h or img_w > tar_w:
+    if img_h > new_h or img_w > new_w:
         interpolation = cv.INTER_AREA
     else:
         interpolation = cv.INTER_CUBIC
 
     aspect_ratio = img_w / img_h
-    target_ratio = tar_w / tar_h
-    height_ratio = tar_h / img_h
-    width_ratio = tar_w / img_w
-
-    new_h, new_w = tar_h, tar_w
+    target_ratio = new_w / new_h
+    height_ratio = new_h / img_h
+    width_ratio = new_w / img_w
 
     if aspect_ratio != target_ratio:
         if width_ratio > height_ratio:
@@ -41,7 +39,7 @@ def rescale_image(img, tar_h, tar_w):
     return rescaled_img
 
 
-def pad_image(img, tar_h, tar_w):
+def pad_image(img, new_h, new_w):
     img_h, img_w = img.shape[:2]
 
     if len(img.shape) == 3:
@@ -49,8 +47,8 @@ def pad_image(img, tar_h, tar_w):
     else:
         pad_value = 0
 
-    pad_vert = np.abs(tar_h - img_h) / 2
-    pad_horz = np.abs(tar_w - img_w) / 2
+    pad_vert = np.abs(new_h - img_h) / 2
+    pad_horz = np.abs(new_w - img_w) / 2
 
     pad_t = np.floor(pad_vert).astype(int)
     pad_b = np.ceil(pad_vert).astype(int)

@@ -17,7 +17,7 @@ import numpy as np
 class Attention():
     def __init__(self):
         saccade_sub = rospy.Subscriber("/saccade_target", Point, self.saccade_callback, queue_size=1, buff_size=2**24)
-        camera_sub = rospy.Subscriber("/icub_model/left_eye_camera/image_raw", Image, self.camera_callback, queue_size=1, buff_size=2**24)
+        camera_sub = rospy.Subscriber("/icub_model/left_eye_camera/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         camera_info_sub = rospy.Subscriber("/icub_model/left_eye_camera/camera_info", CameraInfo, self.camera_info_callback, queue_size=1, buff_size=2**24)
 
         self.pan_pub = rospy.Publisher("/robot/left_eye_pan/pos", Float64, queue_size=1)
@@ -30,14 +30,14 @@ class Attention():
 
         self.looker = rospy.Service('look', Look, self.look)
 
-        self.camera = None
+        self.camera_image = None
         self.camera_info = None
-        self.model = PinholeCameraModel()
+        self.camera_model = PinholeCameraModel()
 
         self.x = 0.
         self.y = 0.
 
-        self.limit = 0.942477796 
+        self.eye_joint_limit = 0.942477796
 
         self.saliency_width = float(rospy.get_param('~saliency_width', '256'))
         self.saliency_height = float(rospy.get_param('~saliency_height', '192'))
@@ -45,19 +45,19 @@ class Attention():
         self.cv_bridge = CvBridge()
 
     def saccade_callback(self, saccade):
-        if self.camera is not None and self.camera_info is not None:
+        if self.camera_image is not None and self.camera_info is not None:
             # scale to camera image size
-            x = int(saccade.x * (float(self.camera.width)/self.saliency_width))
-            y = int(saccade.y * (float(self.camera.height)/self.saliency_height))
+            x = int(saccade.x * (float(self.camera_image.width)/self.saliency_width))
+            y = int(saccade.y * (float(self.camera_image.height)/self.saliency_height))
 
             # compute target in polar coordinates
-            self.model.fromCameraInfo(self.camera_info)
-            ray = self.model.projectPixelTo3dRay((x, y))
+            self.camera_model.fromCameraInfo(self.camera_info)
+            ray = self.camera_model.projectPixelTo3dRay((x, y))
             dx = np.arctan(-ray[0])
             dy = np.arctan(-ray[1] / np.sqrt(ray[0] * ray[0] + 1))
 
             # publish new position
-            if self.x + dx < -self.limit or self.x + dx > self.limit or self.y + dy < -self.limit or self.y + dy > self.limit:
+            if self.x + dx < -self.eye_joint_limit or self.x + dx > self.eye_joint_limit or self.y + dy < -self.eye_joint_limit or self.y + dy > self.eye_joint_limit:
                 print "\tover eye movement limit! dropped!"
                 return
             self.x += dx
@@ -73,7 +73,7 @@ class Attention():
             y2 = self.camera_info.height/2 + size
 
             try:
-                image = self.cv_bridge.imgmsg_to_cv2(self.camera, "bgr8")
+                image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
             except CvBridgeError as e:
                 print e
 
@@ -101,8 +101,8 @@ class Attention():
         else:
             print "but information is missing"
 
-    def camera_callback(self, camera):
-        self.camera = camera
+    def image_callback(self, camera_image):
+        self.camera_image = camera_image
 
     def camera_info_callback(self, camera_info):
         self.camera_info = camera_info
