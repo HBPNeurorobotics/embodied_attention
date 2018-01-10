@@ -10,11 +10,6 @@ import matplotlib.pyplot as plt
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 
-# network has been trained and works best on 192x256
-# both height and width must be divisible by 8
-img_height = 192
-img_width = 256
-
 def rescale_image(img, new_h, new_w):
     img_h, img_w = img.shape[:2]
 
@@ -76,6 +71,11 @@ class Saliency():
 
         image_sub = rospy.Subscriber("/rgb/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
 
+        # network has been trained and works best on 192x256
+        # both height and width must be divisible by 8
+        self.network_input_height = float(rospy.get_param('~network_input_height', '192'))
+        self.network_input_width = float(rospy.get_param('~network_input_width', '256'))
+
     def __del__(self):
         self.sess.close()
 
@@ -86,8 +86,8 @@ class Saliency():
         except CvBridgeError as e:
             print e
 
-        stim = rescale_image(frame, img_height, img_width)
-        stim = pad_image(stim, img_height, img_width)
+        stim = rescale_image(frame, self.network_input_height, self.network_input_width)
+        stim = pad_image(stim, self.network_input_height, self.network_input_width)
     
         stim = stim[None, :, :, :]
         stim = stim.astype(np.float32)
