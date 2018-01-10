@@ -89,14 +89,12 @@ class Attention():
             try:
                 # object recognition
                 label = self.recognizer(roi).Label
-                try:
-                    # store in memory
-                    self.memory(self.x * 100, self.y * 100, label)
-                    print "\tstored in memory: %d, %d, %s" % (self.x * 100, self.y * 100, label)
-                except rospy.ServiceException:
-                    print "\tmemory service call failed"
+                print "\tgot label %s" % label
+                # store in memory
+                self.memory(self.x * 100, self.y * 100, label)
+                print "\tstored in memory at %d, %d" % (self.x * 100, self.y * 100)
             except rospy.ServiceException:
-                print "\trecognize service call failed"
+                print "\trecognize or memory service call failed"
 
         else:
             print "but information is missing"
