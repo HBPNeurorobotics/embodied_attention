@@ -78,7 +78,7 @@ class Saliency():
         self.cv_bridge = CvBridge()
 
         self.sess = tf.Session()
-        self.net = tf.train.import_meta_graph(model_file + ".meta")
+        self.net = tf.train.import_meta_graph(meta_file)
         self.net.restore(self.sess, model_file)
         graph = tf.get_default_graph()
         self.output = graph.get_operation_by_name("conv2d_8/BiasAdd").outputs[0]
