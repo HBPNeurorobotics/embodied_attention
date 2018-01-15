@@ -6,7 +6,6 @@ import rospy
 import cv2 as cv
 import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 import os
