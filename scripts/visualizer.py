@@ -68,7 +68,7 @@ class Visualizer():
 
             self.image_augmented_pub.publish(image)
         else:
-            print "but information is missing"
+            print "Visualizer: received target but no image"
 
     def image_callback(self, image):
         self.image = image
