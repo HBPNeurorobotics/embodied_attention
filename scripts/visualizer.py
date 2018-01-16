@@ -24,8 +24,8 @@ class Visualizer():
 
         self.image = None
 
-        self.targets = []
-        self.potential_targets = []
+        self.target = None
+        self.potential_target = None
 
         self.saliency_width = float(rospy.get_param('~saliency_width', '256'))
         self.saliency_height = float(rospy.get_param('~saliency_height', '192'))
@@ -37,7 +37,7 @@ class Visualizer():
         x = int(target.x * (float(self.image.width)/self.saliency_width))
         y = int(target.y * (float(self.image.height)/self.saliency_height))
 
-        self.targets.append((x, y))
+        self.target = (x, y)
         self.publish()
 
     def potential_target_callback(self, target):
@@ -45,7 +45,7 @@ class Visualizer():
         x = int(target.x * (float(self.image.width)/self.saliency_width))
         y = int(target.y * (float(self.image.height)/self.saliency_height))
 
-        self.potential_targets.append((x, y))
+        self.potential_target = (x, y)
         self.publish()
 
     def publish(self):
@@ -56,10 +56,10 @@ class Visualizer():
                 print e
 
             # visualization
-            for t in self.potential_targets:
-                cv.circle(image, (t[0], t[1]), 2, (0, 255, 0))
-            for t in self.targets:
-                cv.circle(image, (t[0], t[1]), 2, (0, 0, 255))
+            if self.target is not None:
+                cv.circle(image, (self.target[0], self.target[1]), 2, (0, 0, 255))
+            if self.potential_target is not None:
+                cv.circle(image, (self.potential_target[0], self.potential_target[1]), 2, (0, 255, 0))
 
             try:
                 image = self.cv_bridge.cv2_to_imgmsg(image, "bgr8")
@@ -74,12 +74,12 @@ class Visualizer():
         self.image = image
 
     def pan_callback(self, pos):
-        self.targets = []
-        self.potential_targets = []
+        self.target = None
+        self.potential_target = None
 
     def tilt_callback(self, pos):
-        self.targets = []
-        self.potential_targets = []
+        self.target = None
+        self.potential_target = None
 
 def main(args):
     rospy.init_node("visualizer")
