@@ -5,7 +5,7 @@ import roslib; roslib.load_manifest(PKG)
 import rospy
 import cv2 as cv
 from cv_bridge import CvBridge, CvBridgeError
-from sensor_msgs.msg import Image, CameraInfo
+from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import Point
 import sys
 import os
@@ -57,7 +57,7 @@ class Saccade():
         self.M               = np.zeros(self.N)            # movement neurons
         self.V               = np.zeros(self.N)            # visual neurons
     
-        rospy.Subscriber("/saliency_map", Image, self.saliency_callback, queue_size=1, buff_size=2**24)
+        rospy.Subscriber("/saliency_map", Float32MultiArray, self.saliency_map_callback, queue_size=1, buff_size=2**24)
 
         self.target_pub = rospy.Publisher("/saccade_target", Point, queue_size=1)
         self.potential_target_pub = rospy.Publisher("/saccade_potential_target", Point, queue_size=1)
@@ -65,13 +65,14 @@ class Saccade():
         self.cv_bridge = CvBridge()
 
     # numerical integration (simple Euler)
-    def saliency_callback(self, saliency_map):
+    def saliency_map_callback(self, saliency_map):
 
         # handle input
-        try:
-            sal = self.cv_bridge.imgmsg_to_cv2(saliency_map, "mono8")
-        except CvBridgeError as e:
-            print e
+        lo = saliency_map.layout
+        sal = np.ndarray(shape=(lo.dim[0].size, lo.dim[1].size))
+        for i in range(lo.dim[0].size):
+            for j in range(lo.dim[1].size):
+                sal[i][j] = saliency_map.data[lo.data_offset + lo.dim[1].size * i + j]
 
         sal = misc.imresize(sal, [self.Ns, self.Ns])
         sal = np.reshape(sal, [self.N, ])/235.*0.55+.2
@@ -85,8 +86,8 @@ class Saccade():
         # transform to coordinates in saliency map
         x = np.mod(ID, self.Ns) + 0.5
         y = int(ID/self.Ns) + 0.5
-        x_scaled = int(float(saliency_map.width)/self.Ns * x)
-        y_scaled = int(float(saliency_map.height)/self.Ns * y)
+        x_scaled = int(float(lo.dim[0].size)/self.Ns * x)
+        y_scaled = int(float(lo.dim[1].size)/self.Ns * y)
         print "potential target: %3d, %3d: %f" % (x_scaled, y_scaled, self.M[ID])
 
         # puslish potential target

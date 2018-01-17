@@ -7,6 +7,7 @@ import cv2 as cv
 import numpy as np
 import tensorflow as tf
 from sensor_msgs.msg import Image, CameraInfo
+from std_msgs.msg import Float32MultiArray, MultiArrayLayout, MultiArrayDimension
 from cv_bridge import CvBridge, CvBridgeError
 import os
 
@@ -74,7 +75,8 @@ class Saliency():
             wget.download("https://neurorobotics-files.net/owncloud/index.php/s/sDCFUGTrzJyhDA5/download", index_file)
             wget.download("https://neurorobotics-files.net/owncloud/index.php/s/Scti429S7D11tMv/download", data_file)
 
-        self.saliency_pub = rospy.Publisher("/saliency_map", Image, queue_size=1)
+        self.saliency_pub = rospy.Publisher("/saliency_map", Float32MultiArray, queue_size=1)
+        self.saliency_image_pub = rospy.Publisher("/saliency_map_image", Image, queue_size=1)
         self.cv_bridge = CvBridge()
 
         self.sess = tf.Session()
@@ -116,18 +118,29 @@ class Saliency():
 
         tf.reset_default_graph()
 
-        saliency = self.sess.run(self.output, feed_dict={self.input: stim})
+        saliency_map = self.sess.run(self.output, feed_dict={self.input: stim})
 
-        saliency = saliency.squeeze()
-        saliency = (saliency - saliency.min()) / (saliency.max() - saliency.min()) * 255. # is this correct?
-        saliency = np.uint8(saliency)
+        saliency_map = saliency_map.squeeze()
+
+        # publish saliency map
+        dim0 = MultiArrayDimension(size=len(saliency_map))
+        dim1 = MultiArrayDimension(size=len(saliency_map[0]))
+        data_offset = 0
+
+        lo = MultiArrayLayout([dim0, dim1], data_offset)
+
+        self.saliency_pub.publish(Float32MultiArray(layout=lo, data=saliency_map.flatten()))
+
+        # publish saliency map image
+        saliency_map_image = (saliency_map - saliency_map.min()) / (saliency_map.max() - saliency_map.min()) * 255.
+        saliency_map_image = np.uint8(saliency_map_image)
 
         try:
-            res_msg = self.cv_bridge.cv2_to_imgmsg(saliency, "mono8")
+            res_msg = self.cv_bridge.cv2_to_imgmsg(saliency_map_image, "mono8")
         except CvBridgeError as e:
             print e
 
-        self.saliency_pub.publish(res_msg)
+        self.saliency_image_pub.publish(res_msg)
 
 
 def main():
