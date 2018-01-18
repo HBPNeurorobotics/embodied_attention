@@ -7,6 +7,7 @@ import cv2 as cv
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import Point
+from embodied_attention.srv import ResetSaccade
 import sys
 import os
 import numpy as np                                                                                                                                                                                                         
@@ -57,12 +58,14 @@ class Saccade():
         self.M               = np.zeros(self.N)            # movement neurons
         self.V               = np.zeros(self.N)            # visual neurons
     
-        rospy.Subscriber("/saliency_map", Float32MultiArray, self.saliency_map_callback, queue_size=1, buff_size=2**24)
+        self.saliency_sub = rospy.Subscriber("/saliency_map", Float32MultiArray, self.saliency_map_callback, queue_size=1, buff_size=2**24)
 
         self.target_pub = rospy.Publisher("/saccade_target", Point, queue_size=1)
         self.potential_target_pub = rospy.Publisher("/saccade_potential_target", Point, queue_size=1)
 
         self.cv_bridge = CvBridge()
+
+        self.reset_saccade_serv = rospy.Service('/reset_saccade', ResetSaccade, self.handle_reset_saccade)
 
     # numerical integration (simple Euler)
     def saliency_map_callback(self, saliency_map):
@@ -105,6 +108,13 @@ class Saccade():
 
             # inhibition of return
             self.V = self.V - gauss(self.X[ID], self.Y[ID], self.X, self.Y, self.sig_IoR)
+
+    def handle_reset_saccade(self, req):
+        print "going to reset saccade node"
+        self.saliency_sub.unregister()
+        self.reset_saccade_serv.shutdown()
+        self.__init__()
+        return True
 
 def main(args):
     rospy.init_node("saccade")

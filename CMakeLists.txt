@@ -56,6 +56,7 @@ add_service_files(
   FILES
   Roi.srv
   Look.srv
+  ResetSaccade.srv
 )
 
 ## Generate actions in the 'action' folder
