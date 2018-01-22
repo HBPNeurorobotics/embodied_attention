@@ -72,10 +72,7 @@ class Saccade():
 
         # handle input
         lo = saliency_map.layout
-        sal = np.ndarray(shape=(lo.dim[0].size, lo.dim[1].size))
-        for i in range(lo.dim[0].size):
-            for j in range(lo.dim[1].size):
-                sal[i][j] = saliency_map.data[lo.data_offset + lo.dim[1].size * i + j]
+        sal = np.asarray(saliency_map.data[lo.data_offset:]).reshape(lo.dim[0].size, lo.dim[1].size)
 
         sal = misc.imresize(sal, [self.Ns, self.Ns])
         sal = np.reshape(sal, [self.N, ])/235.*0.55+.2
