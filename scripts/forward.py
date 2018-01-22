@@ -6,6 +6,7 @@ import rospy
 import cv2 as cv
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.client import device_lib
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import Float32MultiArray, MultiArrayLayout, MultiArrayDimension
 from cv_bridge import CvBridge, CvBridgeError
@@ -71,9 +72,14 @@ class Saliency():
             import wget
             import ssl
             ssl._create_default_https_context = ssl._create_unverified_context
-            wget.download("https://neurorobotics-files.net/owncloud/index.php/s/TNpWFSX8xLvfbYD/download", meta_file)
-            wget.download("https://neurorobotics-files.net/owncloud/index.php/s/sDCFUGTrzJyhDA5/download", index_file)
-            wget.download("https://neurorobotics-files.net/owncloud/index.php/s/Scti429S7D11tMv/download", data_file)
+            if any([(dev.device_type == "GPU") for dev in device_lib.list_local_devices()]):
+                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/hdjl7TjzSUqF1Ww/download", meta_file)
+                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/DCPB80foqkteuC4/download", index_file)
+                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/bkpmmvrVkeELapr/download", data_file)
+            else:
+                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/TNpWFSX8xLvfbYD/download", meta_file)
+                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/sDCFUGTrzJyhDA5/download", index_file)
+                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/Scti429S7D11tMv/download", data_file)
 
         self.saliency_pub = rospy.Publisher("/saliency_map", Float32MultiArray, queue_size=1)
         self.saliency_image_pub = rospy.Publisher("/saliency_map_image", Image, queue_size=1)
