@@ -68,7 +68,7 @@ class Visualizer():
 
             self.image_augmented_pub.publish(image)
         else:
-            print "Visualizer: received target but no image"
+            rospy.loginfo("Received target but camera image is missing")
 
     def image_callback(self, image):
         self.image = image

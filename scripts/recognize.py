@@ -74,12 +74,11 @@ class Recognize():
 
       with self.graph.as_default():
         preds = self.model.predict(x)
-        preds = decode_predictions(preds, top=10)[0]
-        print 'Predicitions:'
+        preds = decode_predictions(preds, top=5)[0]
+        rospy.loginfo('Predicitions:')
         for item in preds:
-            print '\t%s: %f' % (item[1], item [2])
-        print 'Identified as: %s' % preds[0][1]
-        print
+            rospy.loginfo('\t%s: %f' % (item[1], item [2]))
+        rospy.loginfo('Identified as: %s\n' % preds[0][1])
         return preds[0][1]
 
 def main(args):

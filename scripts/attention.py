@@ -58,7 +58,7 @@ class Attention():
 
             # publish new position
             if self.x + dx < -self.eye_joint_limit or self.x + dx > self.eye_joint_limit or self.y + dy < -self.eye_joint_limit or self.y + dy > self.eye_joint_limit:
-                print "\tover eye movement limit! dropped!"
+                rospy.loginfo("\tOver eye joint limit, dropped")
                 return
             self.x += dx
             self.y += dy
@@ -89,15 +89,15 @@ class Attention():
             try:
                 # object recognition
                 label = self.recognizer(roi).Label
-                print "\tgot label %s" % label
+                rospy.loginfo("\tGot label %s" % label)
                 # store in memory
                 self.memory(self.x * 100, self.y * 100, label)
-                print "\tstored in memory at %d, %d" % (self.x * 100, self.y * 100)
+                rospy.loginfo("\tStored in memory at %d, %d" % (self.x * 100, self.y * 100))
             except rospy.ServiceException:
-                print "\trecognize or memory service call failed"
+                rospy.loginfo("\tRecognize or memory service call failed")
 
         else:
-            print "but information is missing"
+            rospy.loginfo("Received saccade but camera image or information is missing")
 
     def image_callback(self, camera_image):
         self.camera_image = camera_image
