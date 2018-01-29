@@ -88,14 +88,14 @@ class Saccade():
         y = int(ID/self.Ns) + 0.5
         x_scaled = int(float(lo.dim[0].size)/self.Ns * x)
         y_scaled = int(float(lo.dim[1].size)/self.Ns * y)
-        print "potential target: %3d, %3d: %f" % (x_scaled, y_scaled, self.M[ID])
+        rospy.loginfo("Potential target: %3d, %3d: %f" % (x_scaled, y_scaled, self.M[ID]))
 
         # puslish potential target
         self.potential_target_pub.publish(Point(x_scaled, y_scaled, self.M[ID]))
 
         # check if target
         if (self.M[ID] >= self.theta):
-            print "\tis target"
+            rospy.loginfo("\tis actual target")
 
             # publish target
             self.target_pub.publish(Point(x_scaled, y_scaled, self.M[ID]))
@@ -107,7 +107,7 @@ class Saccade():
             self.V = self.V - gauss(self.X[ID], self.Y[ID], self.X, self.Y, self.sig_IoR)
 
     def handle_reset_saccade(self, req):
-        print "going to reset saccade node"
+        rospy.loginfo("Resetting node")
         self.saliency_sub.unregister()
         self.reset_saccade_serv.shutdown()
         self.__init__()
