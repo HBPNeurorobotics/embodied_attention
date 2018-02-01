@@ -4,7 +4,7 @@ import roslib; roslib.load_manifest(PKG)
 
 import rospy
 from geometry_msgs.msg import Point
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, String
 from sensor_msgs.msg import Image, CameraInfo
 from image_geometry import PinholeCameraModel
 from embodied_attention.srv import Roi, Look
@@ -23,6 +23,7 @@ class Attention():
         self.pan_pub = rospy.Publisher("/robot/left_eye_pan/pos", Float64, queue_size=1)
         self.tilt_pub = rospy.Publisher("/robot/eye_tilt/pos", Float64, queue_size=1)
         self.roi_pub = rospy.Publisher("/roi", Image, queue_size=1)
+        self.label_pub = rospy.Publisher("/label", String, queue_size=1)
 
         self.recognizer = rospy.ServiceProxy('recognize', Roi)
         self.memory = rospy.ServiceProxy('new_object', NewObject)
@@ -89,6 +90,7 @@ class Attention():
             try:
                 # object recognition
                 label = self.recognizer(roi).Label
+                self.label_pub.publish(label)
                 rospy.loginfo("\tGot label %s" % label)
                 # store in memory
                 self.memory(self.x * 100, self.y * 100, label)
