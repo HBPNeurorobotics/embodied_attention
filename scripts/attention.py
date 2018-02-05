@@ -5,10 +5,11 @@ import roslib; roslib.load_manifest(PKG)
 import rospy
 from geometry_msgs.msg import Point
 from std_msgs.msg import Float64, String
+from std_srvs.srv import SetBool
 from sensor_msgs.msg import Image, CameraInfo
 from image_geometry import PinholeCameraModel
 from embodied_attention.srv import Roi, Look
-from ros_holographic.srv import NewObject, ProbeLabel
+from ros_holographic.srv import NewObject, ProbeLabel, ProbeCoordinate
 from cv_bridge import CvBridge, CvBridgeError
 import sys
 import os
@@ -24,12 +25,15 @@ class Attention():
         self.tilt_pub = rospy.Publisher("/robot/eye_tilt/pos", Float64, queue_size=1)
         self.roi_pub = rospy.Publisher("/roi", Image, queue_size=1)
         self.label_pub = rospy.Publisher("/label", String, queue_size=1)
+        self.probe_pub = rospy.Publisher("/probe_results", String, queue_size=1)
 
         self.recognizer = rospy.ServiceProxy('recognize', Roi)
         self.memory = rospy.ServiceProxy('new_object', NewObject)
-        self.probe = rospy.ServiceProxy('probe_label', ProbeLabel)
+        self.probe_label = rospy.ServiceProxy('probe_label', ProbeLabel)
+        self.probe_coordinate = rospy.ServiceProxy('probe_coordinate', ProbeCoordinate)
 
-        self.looker = rospy.Service('look', Look, self.look)
+        self.look = rospy.Service('look', Look, self.look)
+        self.mem = rospy.Service('memorize', SetBool, self.mem)
 
         self.camera_image = None
         self.camera_info = None
@@ -44,6 +48,8 @@ class Attention():
         self.saliency_height = float(rospy.get_param('~saliency_height', '192'))
 
         self.cv_bridge = CvBridge()
+
+        self.memorize = True
 
     def saccade_callback(self, saccade):
         if self.camera_image is not None and self.camera_info is not None:
@@ -92,9 +98,25 @@ class Attention():
                 label = self.recognizer(roi).Label
                 self.label_pub.publish(label)
                 rospy.loginfo("\tGot label %s" % label)
-                # store in memory
-                self.memory(self.x * 100, self.y * 100, label)
-                rospy.loginfo("\tStored in memory at %d, %d" % (self.x * 100, self.y * 100))
+
+                if self.memorize:
+                    # store in memory
+                    self.memory(self.x * 100, self.y * 100, label)
+                    rospy.loginfo("\tStored in memory at %d, %d" % (self.x * 100, self.y * 100))
+                else:
+                    probe_ans = self.probe_coordinate(self.x * 100, self.y * 100)
+                    if probe_ans.return_value and len(probe_ans.Label) > 0:
+                        if probe_ans.Label[0] == label:
+                            res = "Approved: %s still at the same place" % label
+                        else:
+                            res = "Changed: Found %s where %s was before" % (label, probe_ans.Label[0])
+                    else:
+                        res = "New: Found %s, which wasn't here before" % label
+                    rospy.loginfo(res)
+                    self.probe_pub.publish(res)
+                    loc = "at %d, %d" % (self.x * 100, self.y * 100)
+                    rospy.loginfo(loc)
+                    self.probe_pub.publish(loc)
             except rospy.ServiceException:
                 rospy.loginfo("\tRecognize or memory service call failed")
 
@@ -109,7 +131,7 @@ class Attention():
 
     def look(self, label):
         # ask memory for label
-        p = self.probe(label.Label)
+        p = self.probe_label(label.Label)
 
         if not p.return_value or len(p.X) == 0 or len(p.Y) == 0:
             return False
@@ -121,6 +143,10 @@ class Attention():
         self.pan_pub.publish(x/100.)
         self.tilt_pub.publish(y/100.)
         return True
+
+    def mem(self, value):
+        self.memorize = value.data
+        return (True, 'success')
 
 def main(args):
     rospy.init_node("attention")
