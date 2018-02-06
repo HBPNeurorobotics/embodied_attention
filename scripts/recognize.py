@@ -4,6 +4,7 @@ PKG = 'embodied_attention'
 import roslib; roslib.load_manifest(PKG)
 import rospy
 
+import os
 import sys
 import numpy as np
 
@@ -13,52 +14,32 @@ from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
 from skimage.transform import resize
 
-from keras.applications.mobilenet import MobileNet
-from keras.applications.mobilenet import preprocess_input, decode_predictions
+from datasets import imagenet
+from nets import inception
+from preprocessing import inception_preprocessing
+
+import tensorflow as tf
+from tensorflow.contrib import slim
 
 from embodied_attention.srv import Roi
 
-import tensorflow as tf
-
-
-height = 224
-width = 224
-
-def rescale(img, height, width):
-  if len(img.shape) == 3:
-    h, w, _ = img.shape
-  elif len(img.shape) == 2:
-    h, w = img.shape
-  
-  if (float(height)/h) > (float(width)/w):
-    img = resize(img, (height, w*height/h),
-                                     order=3, preserve_range=True)
-  else:
-    img = resize(img, (h*width/w, width),
-                                     order=3, preserve_range=True)
-  
-  if len(img.shape) == 3:
-    h, w, _ = img.shape
-  elif len(img.shape) == 2:
-    h, w = img.shape
-  
-  img = img[h//2-(height/2):h//2+(height/2), w//2-(width/2):w//2+(width/2)]
-  
-  if len(img.shape) == 3:
-    img[:, :, 0] -= 103.939
-    img[:, :, 1] -= 116.779
-    img[:, :, 2] -= 123.68
-  
-  return img
-
 class Recognize():
     def __init__(self):
-        self.model = MobileNet(input_shape=None, alpha=1.0, depth_multiplier=1, dropout=1e-3, include_top=True, weights='imagenet', input_tensor=None, pooling=None, classes=1000)
-        self.model._make_predict_function()
-        self.graph = tf.get_default_graph()
-        s = rospy.Service('recognize', Roi, self.recognize)
-
         self.cv_bridge = CvBridge()
+
+        self.model_path = rospy.get_param('~model_path', '/tmp/')
+        self.model_file = self.model_path + 'inception_v1.ckpt'
+
+        if (not os.path.exists(self.model_file)):
+            rospy.logwarn("Model files not present:\n\t{}\nWe will download them from tensorflow."
+                .format(self.model_file))
+            from datasets import dataset_utils
+            url = "http://download.tensorflow.org/models/inception_v1_2016_08_28.tar.gz"
+            dataset_utils.download_and_uncompress_tarball(url, self.model_path)
+
+        self.names = imagenet.create_readable_names_for_imagenet_labels()
+
+        s = rospy.Service('recognize', Roi, self.recognize)
 
     def recognize(self, roi):
       try:
@@ -66,20 +47,29 @@ class Recognize():
       except CvBridgeError as e:
         print e
 
-      x = rescale(frame, height, width)
-      x = x.astype(np.float32)
+      image = tf.convert_to_tensor(frame)
+      processed_image = inception_preprocessing.preprocess_image(image, inception.inception_v1.default_image_size, inception.inception_v1.default_image_size, is_training=False)
+      processed_images = tf.expand_dims(processed_image, 0)
 
-      x = np.expand_dims(x, axis=0)
-      x = preprocess_input(x)
+      with slim.arg_scope(inception.inception_v1_arg_scope()):
+          logits, _ = inception.inception_v1(processed_images, num_classes=1001, is_training=False)
+      probabilities = tf.nn.softmax(logits)
 
-      with self.graph.as_default():
-        preds = self.model.predict(x)
-        preds = decode_predictions(preds, top=5)[0]
-        rospy.loginfo('Predicitions:')
-        for item in preds:
-            rospy.loginfo('\t%s: %f' % (item[1], item [2]))
-        rospy.loginfo('Identified as: %s\n' % preds[0][1])
-        return preds[0][1]
+      init_fn = slim.assign_from_checkpoint_fn(
+          self.model_file,
+          slim.get_model_variables('InceptionV1'))
+
+      with tf.Session() as sess:
+          init_fn(sess)
+          np_image, probabilities = sess.run([image, probabilities])
+          probabilities = probabilities[0, 0:]
+          sorted_inds = [i[0] for i in sorted(enumerate(-probabilities), key=lambda x:x[1])]
+
+      for i in range(5):
+          index = sorted_inds[i]
+          rospy.loginfo('Probability %0.2f%% => [%s]' % (probabilities[index] * 100, self.names[index]))
+
+      return self.names[sorted_inds[0]].split(',')[0]
 
 def main(args):
   rospy.init_node("recognize")
