@@ -117,6 +117,16 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
   }
 }
 
+cv::Ptr<cv::SimpleBlobDetector> createSimpleBlobDetector(const cv::SimpleBlobDetector::Params &params) {
+#if CV_MAJOR_VERSION < 3   // If you are using OpenCV 2
+  using namespace cv;
+  SimpleBlobDetector *detector = new SimpleBlobDetector(params);
+  return Ptr<SimpleBlobDetector>(detector);
+#else
+  return SimpleBlobDetector::create(params);
+#endif
+}
+
 int main(int argc, char **argv) {
   // initialize blob detector
   cv::SimpleBlobDetector::Params params;
@@ -130,7 +140,7 @@ int main(int argc, char **argv) {
   params.filterByCircularity = false;
   params.filterByArea = true;
   params.minArea = 50;
-  detector = cv::SimpleBlobDetector::create(params);
+  detector = createSimpleBlobDetector(params);
 
   // initialize joint command
   joint_cmd.name.resize(2);
