@@ -118,8 +118,8 @@ void saliency_map_callback(const sensor_msgs::ImageConstPtr& msg) {
 }
 
 cv::Ptr<cv::SimpleBlobDetector> createSimpleBlobDetector(const cv::SimpleBlobDetector::Params &params) {
-#if CV_MAJOR_VERSION < 3   // If you are using OpenCV 2
   using namespace cv;
+#if CV_MAJOR_VERSION < 3   // If you are using OpenCV 2
   SimpleBlobDetector *detector = new SimpleBlobDetector(params);
   return Ptr<SimpleBlobDetector>(detector);
 #else
