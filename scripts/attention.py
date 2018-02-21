@@ -99,12 +99,15 @@ class Attention():
                 self.label_pub.publish(label)
                 rospy.loginfo("\tGot label %s" % label)
 
+                mem_x = self.x / self.eye_joint_limit * 100
+                mem_y = self.y / self.eye_joint_limit * 100
+
                 if self.memorize:
                     # store in memory
-                    self.memory(self.x * 100, self.y * 100, label)
-                    rospy.loginfo("\tStored in memory at %d, %d" % (self.x * 100, self.y * 100))
+                    self.memory(mem_x, mem_y, label)
+                    rospy.loginfo("\tStored in memory at %d, %d" % (mem_x, mem_y))
                 else:
-                    probe_ans = self.probe_coordinate(self.x * 100, self.y * 100)
+                    probe_ans = self.probe_coordinate(mem_x, mem_y)
                     if probe_ans.return_value and len(probe_ans.Label) > 0:
                         if probe_ans.Label[0] == label:
                             res = "Approved: %s still at the same place" % label
@@ -114,7 +117,7 @@ class Attention():
                         res = "New: Found %s, which wasn't here before" % label
                     rospy.loginfo(res)
                     self.probe_pub.publish(res)
-                    loc = "at %d, %d" % (self.x * 100, self.y * 100)
+                    loc = "at %d, %d" % (mem_x, mem_y)
                     rospy.loginfo(loc)
                     self.probe_pub.publish(loc)
             except rospy.ServiceException:
