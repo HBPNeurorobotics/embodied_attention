@@ -16,7 +16,7 @@ import sys
 import os
 import numpy as np
 
-class Attention():
+class HeadManager():
     def __init__(self):
         saccade_sub = rospy.Subscriber("/saccade_target", Point, self.saccade_callback, queue_size=1, buff_size=2**24)
         camera_sub = rospy.Subscriber("/icub_model/left_eye_camera/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
@@ -168,8 +168,8 @@ class Attention():
         return (True, 'success')
 
 def main(args):
-    rospy.init_node("attention")
-    attention = Attention()
+    rospy.init_node("head_manager")
+    head_manager = HeadManager()
     rospy.spin()
 
 if __name__ == '__main__':
