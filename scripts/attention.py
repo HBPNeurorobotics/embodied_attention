@@ -5,12 +5,13 @@ import roslib; roslib.load_manifest(PKG)
 import rospy
 from geometry_msgs.msg import Point
 from std_msgs.msg import Float64, String
-from std_srvs.srv import SetBool
+from std_srvs.srv import SetBool, Empty
 from sensor_msgs.msg import Image, CameraInfo
 from image_geometry import PinholeCameraModel
 from embodied_attention.srv import Roi, Look
 from ros_holographic.srv import NewObject, ProbeLabel, ProbeCoordinate
 from cv_bridge import CvBridge, CvBridgeError
+import cv2 as cv
 import sys
 import os
 import numpy as np
@@ -51,6 +52,10 @@ class Attention():
 
         self.memorize = True
 
+        self.counter = 0
+        self.annotated_img_pub = rospy.Publisher('/annotated_image', Image, queue_size=1)
+        self.image_saver = rospy.ServiceProxy('/hugin_panorama/image_saver/save', Empty)
+
     def saccade_callback(self, saccade):
         if self.camera_image is not None and self.camera_info is not None:
             # scale to camera image size
@@ -67,10 +72,26 @@ class Attention():
             if self.x + dx < -self.eye_joint_limit or self.x + dx > self.eye_joint_limit or self.y + dy < -self.eye_joint_limit or self.y + dy > self.eye_joint_limit:
                 rospy.loginfo("\tOver eye joint limit, dropped")
                 return
+
             self.x += dx
             self.y += dy
             self.pan_pub.publish(self.x)
             self.tilt_pub.publish(self.y)
+
+            try:
+                image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+            except CvBridgeError as e:
+                print e
+
+            annotated_img = image.copy()
+            cv.putText(annotated_img, str(self.counter), (self.camera_info.width/2, self.camera_info.height/2), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv.LINE_AA)
+            self.counter = self.counter + 1
+            try:
+                annotated_img = self.cv_bridge.cv2_to_imgmsg(annotated_img, "bgr8")
+            except CvBridgeError as e:
+                print e
+            self.annotated_img_pub.publish(annotated_img)
+            self.image_saver()
 
             # set roi
             size = 25
@@ -78,11 +99,6 @@ class Attention():
             y1 = self.camera_info.height/2 - size
             x2 = self.camera_info.width/2 + size
             y2 = self.camera_info.height/2 + size
-
-            try:
-                image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-            except CvBridgeError as e:
-                print e
 
             roi = image[y1:y2, x1:x2]
 
