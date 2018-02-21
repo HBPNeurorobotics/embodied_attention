@@ -18,7 +18,7 @@ class Saccade():
         self.theta   =    11.      # decision threshold
         sig_lat      =      .25    # width of Gaussian lateral inhibition
         self.sig_IoR =      .05    # width of Gaussian spread of inhibition of return
-        sig_noise    =      .2     # width of Gaussian noise
+        self.sig_noise =    .2     # width of Gaussian noise
         self.k       =      .0175  # passive decay rate (movement neurons)
         self.g       =      .33    # input threshold
         self.G       =      .2     # scaling factor for lateral inhibition
@@ -38,26 +38,24 @@ class Saccade():
             self.W[:, i] = gauss(self.X[i], self.Y[i], self.X, self.Y, sig_lat)
             self.W[i, i] = 0.
             
-        #self.dt = .1
-        self.dt = .75
         self.tau = 20.
-        
-        # noise propagation
-        self.dsig_v  = np.sqrt(self.dt/self.tau)*sig_noise # input (visual neuron) noise
-        self.dsig_m  = np.sqrt(self.dt)*sig_noise          # movement neuron noise
         
         # (state) variables
         self.M               = np.zeros(self.N)            # movement neurons
         self.V               = np.zeros(self.N)            # visual neurons
     
     # numerical integration (simple Euler)
-    def compute_saccade_target(self, saliency_map):
+    def compute_saccade_target(self, saliency_map, dt):
+        # noise propagation
+        self.dsig_v  = np.sqrt(dt/self.tau)*self.sig_noise # input (visual neuron) noise
+        self.dsig_m  = np.sqrt(dt)*self.sig_noise          # movement neuron noise
+
         sal = misc.imresize(saliency_map, [self.Ns, self.Ns])
         sal = np.reshape(sal, [self.N, ])/235.*0.55+.2
 
         # update
-        self.V += self.dt*(-self.V + sal)/self.tau + self.dsig_v*np.random.randn(self.N)
-        self.M += self.dt*(-self.k*self.M + f(self.V - self.g) - self.G*np.dot(self.W, f(self.M))) + self.dsig_m*np.random.randn(self.N)
+        self.V += dt*(-self.V + sal)/self.tau + self.dsig_v*np.random.randn(self.N)
+        self.M += dt*(-self.k*self.M + f(self.V - self.g) - self.G*np.dot(self.W, f(self.M))) + self.dsig_m*np.random.randn(self.N)
 
         ID = np.argmax(self.M)
 

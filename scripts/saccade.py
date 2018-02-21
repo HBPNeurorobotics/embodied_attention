@@ -21,12 +21,17 @@ class SaccadeNode():
 
         self.reset_saccade_serv = rospy.Service('/reset_saccade', ResetSaccade, self.handle_reset_saccade)
 
+        self.last_time = rospy.get_time()
+
     def saliency_map_callback(self, saliency_map):
+        current_time = rospy.get_time()
+        dt = current_time - self.last_time
+        self.last_time = current_time
 
         lo = saliency_map.layout
         saliency_map = np.asarray(saliency_map.data[lo.data_offset:]).reshape(lo.dim[0].size, lo.dim[1].size)
 
-        (target, is_actual_target) = self.saccade.compute_saccade_target(saliency_map)
+        (target, is_actual_target) = self.saccade.compute_saccade_target(saliency_map, dt)
 
         self.saccade_potential_target_pub.publish(Point(*target))
         if is_actual_target:
