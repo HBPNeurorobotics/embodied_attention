@@ -60,11 +60,11 @@ class Saccade():
         ID = np.argmax(self.M)
 
         # transform to coordinates in saliency map
-        x = np.mod(ID, self.Ns) + 0.5
         y = int(ID/self.Ns) + 0.5
-        x_scaled = int(float(len(saliency_map))/self.Ns * x)
-        y_scaled = int(float(len(saliency_map[0]))/self.Ns * y)
-        print("Potential target: %3d, %3d: %f" % (x_scaled, y_scaled, self.M[ID]))
+        x = np.mod(ID, self.Ns) + 0.5
+        y_scaled = int(float(len(saliency_map))/self.Ns * y)
+        x_scaled = int(float(len(saliency_map[0]))/self.Ns * x)
+        print("Winning neuron: x: %3d, y: %3d, value: %f" % (x_scaled, y_scaled, self.M[ID]))
 
         target = (x_scaled, y_scaled, self.M[ID])
         is_actual_target = False
