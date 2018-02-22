@@ -6,7 +6,7 @@ import rospy
 from geometry_msgs.msg import Point
 from std_msgs.msg import Float64, String
 from std_srvs.srv import SetBool, Empty
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image, CameraInfo, JointState
 from image_geometry import PinholeCameraModel
 from embodied_attention.srv import Roi, Look
 from ros_holographic.srv import NewObject, ProbeLabel, ProbeCoordinate
@@ -21,6 +21,7 @@ class HeadManager():
         saccade_sub = rospy.Subscriber("/saccade_target", Point, self.saccade_callback, queue_size=1, buff_size=2**24)
         camera_sub = rospy.Subscriber("/icub_model/left_eye_camera/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         camera_info_sub = rospy.Subscriber("/icub_model/left_eye_camera/camera_info", CameraInfo, self.camera_info_callback, queue_size=1, buff_size=2**24)
+        joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback, queue_size=1, buff_size=2**24)
 
         self.pan_pub = rospy.Publisher("/robot/left_eye_pan/pos", Float64, queue_size=1)
         self.tilt_pub = rospy.Publisher("/robot/eye_tilt/pos", Float64, queue_size=1)
@@ -40,8 +41,8 @@ class HeadManager():
         self.camera_info = None
         self.camera_model = PinholeCameraModel()
 
-        self.x = 0.
-        self.y = 0.
+        self.pan = 0.
+        self.tilt = 0.
 
         self.eye_joint_limit = 0.942477796
 
@@ -68,15 +69,16 @@ class HeadManager():
             dx = np.arctan(-ray[0])
             dy = np.arctan(-ray[1] / np.sqrt(ray[0] * ray[0] + 1))
 
+            pan = self.pan + dx
+            tilt = self.tilt + dy
+
             # publish new position
-            if self.x + dx < -self.eye_joint_limit or self.x + dx > self.eye_joint_limit or self.y + dy < -self.eye_joint_limit or self.y + dy > self.eye_joint_limit:
+            if pan < -self.eye_joint_limit or pan > self.eye_joint_limit or tilt < -self.eye_joint_limit or tilt > self.eye_joint_limit:
                 rospy.loginfo("\tOver eye joint limit, dropped")
                 return
 
-            self.x += dx
-            self.y += dy
-            self.pan_pub.publish(self.x)
-            self.tilt_pub.publish(self.y)
+            self.pan_pub.publish(pan)
+            self.tilt_pub.publish(tilt)
 
             try:
                 image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
@@ -118,8 +120,8 @@ class HeadManager():
                 self.label_pub.publish(label)
                 rospy.loginfo("\tGot label %s" % label)
 
-                mem_x = self.x / self.eye_joint_limit * 100
-                mem_y = self.y / self.eye_joint_limit * 100
+                mem_x = pan / self.eye_joint_limit * 100
+                mem_y = tilt / self.eye_joint_limit * 100
 
                 if self.memorize:
                     # store in memory
@@ -150,6 +152,10 @@ class HeadManager():
 
     def camera_info_callback(self, camera_info):
         self.camera_info = camera_info
+
+    def joint_state_callback(self, joint_state):
+        self.pan = joint_state.position[joint_state.name.index("left_eye_pan")]
+        self.tilt = joint_state.position[joint_state.name.index("eye_tilt")]
 
     def look(self, label):
         # ask memory for label
