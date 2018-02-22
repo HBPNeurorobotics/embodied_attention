@@ -53,7 +53,7 @@ class HeadManager():
         self.memorize = True
 
         self.counter = 0
-        self.annotated_img_pub = rospy.Publisher('/annotated_image', Image, queue_size=1)
+        self.image_annotated_pub = rospy.Publisher('/image_annotated', Image, queue_size=1)
         self.image_saver = rospy.ServiceProxy('/hugin_panorama/image_saver/save', Empty)
 
     def saccade_callback(self, saccade):
@@ -83,15 +83,18 @@ class HeadManager():
             except CvBridgeError as e:
                 print e
 
-            annotated_img = image.copy()
-            cv.putText(annotated_img, str(self.counter), (self.camera_info.width/2, self.camera_info.height/2), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv.LINE_AA)
-            self.counter = self.counter + 1
             try:
-                annotated_img = self.cv_bridge.cv2_to_imgmsg(annotated_img, "bgr8")
-            except CvBridgeError as e:
-                print e
-            self.annotated_img_pub.publish(annotated_img)
-            self.image_saver()
+                image_annotated = image.copy()
+                cv.putText(annotated_img, str(self.counter), (self.camera_info.width/2, self.camera_info.height/2), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv.LINE_AA)
+                self.counter = self.counter + 1
+                try:
+                    image_annotated = self.cv_bridge.cv2_to_imgmsg(image_annotated, "bgr8")
+                except CvBridgeError as e:
+                    print e
+                self.image_annotated_pub.publish(image_annotated)
+                self.image_saver()
+            except:
+                rospy.loginfo("\tCould not save image")
 
             # set roi
             size = 25
