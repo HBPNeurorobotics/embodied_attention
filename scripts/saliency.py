@@ -33,9 +33,9 @@ class SaliencyNode():
 
         (saliency_map, saliency_map_image) = self.saliency.compute_saliency_map(image)
 
-        dim0 = MultiArrayDimension(size=len(saliency_map))
-        dim1 = MultiArrayDimension(size=len(saliency_map[0]))
-        lo = MultiArrayLayout([dim0, dim1], 0)
+        height = MultiArrayDimension(size=len(saliency_map))
+        width = MultiArrayDimension(size=len(saliency_map[0]))
+        lo = MultiArrayLayout([height, width], 0)
 
         self.saliency_map_pub.publish(Float32MultiArray(layout=lo, data=saliency_map.flatten()))
 
