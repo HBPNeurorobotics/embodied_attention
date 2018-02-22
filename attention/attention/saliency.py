@@ -52,7 +52,7 @@ def pad_image(img, new_h, new_w):
     return padded_img
 
 class Saliency():
-    def __init__(self, model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256, ):
+    def __init__(self, model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256):
 
         ### saliency
         meta_file = model_file + ".meta"
@@ -81,8 +81,8 @@ class Saliency():
         self.output = graph.get_operation_by_name("conv2d_8/BiasAdd").outputs[0]
         self.input = graph.get_tensor_by_name("Placeholder_1:0")
 
-        self.network_input_height = network_input_height
-        self.network_input_width = network_input_width
+        self.network_input_height = int(network_input_height)
+        self.network_input_width = int(network_input_width)
 
     def __del__(self):
         self.sess.close()
