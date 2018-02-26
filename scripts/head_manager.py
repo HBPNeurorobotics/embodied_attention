@@ -15,6 +15,7 @@ import cv2 as cv
 import sys
 import os
 import numpy as np
+import traceback
 
 class HeadManager():
     def __init__(self):
@@ -82,21 +83,15 @@ class HeadManager():
 
             try:
                 image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-            except CvBridgeError as e:
-                print e
-
-            try:
                 image_annotated = image.copy()
-                cv.putText(annotated_img, str(self.counter), (self.camera_info.width/2, self.camera_info.height/2), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv.LINE_AA)
+                cv.putText(image_annotated, str(self.counter), (self.camera_info.width/2, self.camera_info.height/2), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv.LINE_AA)
                 self.counter = self.counter + 1
-                try:
-                    image_annotated = self.cv_bridge.cv2_to_imgmsg(image_annotated, "bgr8")
-                except CvBridgeError as e:
-                    print e
+                image_annotated = self.cv_bridge.cv2_to_imgmsg(image_annotated, "bgr8")
                 self.image_annotated_pub.publish(image_annotated)
                 self.image_saver()
             except:
                 rospy.loginfo("\tCould not save image")
+                traceback.print_exc()
 
             # set roi
             size = 25
