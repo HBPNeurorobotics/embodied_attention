@@ -21,9 +21,11 @@ class SaccadeNode():
 
         self.reset_saccade_serv = rospy.Service('/reset_saccade', ResetSaccade, self.handle_reset_saccade)
 
-        self.last_time = rospy.get_time()
+        self.last_time = None
 
     def saliency_map_callback(self, saliency_map):
+        if self.last_time is None:
+            self.last_time = rospy.get_time()
         current_time = rospy.get_time()
         dt = current_time - self.last_time
         self.last_time = current_time
