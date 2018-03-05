@@ -109,7 +109,7 @@ class Curiosity():
             point_torso = (transformed.point.x, transformed.point.y, transformed.point.z)
             self.targets.append(point_torso)
         else:
-            rospy.loginfo("Received saliency map but camera information is missing")
+            rospy.loginfo("Received saccade target but camera information is missing")
 
 def main(args):
     rospy.init_node("curiosity")
