@@ -7,6 +7,7 @@ from attention import Saliency
 from std_msgs.msg import Float32MultiArray, MultiArrayDimension, MultiArrayLayout
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+import numpy as np
 
 class SaliencyNode():
     def __init__(self):
@@ -31,7 +32,7 @@ class SaliencyNode():
         except CvBridgeError as e:
             print e
 
-        (saliency_map, saliency_map_image) = self.saliency.compute_saliency_map(image)
+        saliency_map = self.saliency.compute_saliency_map(image)
 
         height = MultiArrayDimension(size=len(saliency_map))
         width = MultiArrayDimension(size=len(saliency_map[0]))
@@ -40,7 +41,7 @@ class SaliencyNode():
         self.saliency_map_pub.publish(Float32MultiArray(layout=lo, data=saliency_map.flatten()))
 
         try:
-            saliency_map_image = self.cv_bridge.cv2_to_imgmsg(saliency_map_image, "mono8")
+            saliency_map_image = self.cv_bridge.cv2_to_imgmsg(np.uint8(saliency_map * 255.), "mono8")
         except CvBridgeError as e:
             print e
 

@@ -106,8 +106,6 @@ class Saliency():
 
         saliency_map = self.sess.run(self.output, feed_dict={self.input: stim})
         saliency_map = saliency_map.squeeze()
+        saliency_map = (saliency_map - saliency_map.min()) / (saliency_map.max() - saliency_map.min())
 
-        saliency_map_image = (saliency_map - saliency_map.min()) / (saliency_map.max() - saliency_map.min()) * 255.
-        saliency_map_image = np.uint8(saliency_map_image)
-
-        return (saliency_map, saliency_map_image)
+        return saliency_map
