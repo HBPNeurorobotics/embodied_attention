@@ -89,7 +89,7 @@ class Saccade:
                 dy = self.Ns/2 - int(ID/self.Ns)
                 dx = self.Ns/2 - np.mod(ID, self.Ns)
                 M = np.reshape(self.M, [self.Ns, self.Ns])
-                V = np.reshape(self.M, [self.Ns, self.Ns])
+                V = np.reshape(self.V, [self.Ns, self.Ns])
                 if dy > 0:
                     M = np.pad(M, ((dy,0),(0,0)), mode='constant')[:-dy,:]
                     V = np.pad(V, ((dy,0),(0,0)), mode='constant')[:-dy,:]
