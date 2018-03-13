@@ -88,21 +88,21 @@ class Saccade:
                 print("\tshifting activity")
                 dy = self.Ns/2 - int(ID/self.Ns)
                 dx = self.Ns/2 - np.mod(ID, self.Ns)
-                M = np.reshape(self.M, [self.Ns, self.Ns])
                 V = np.reshape(self.V, [self.Ns, self.Ns])
+                M = np.reshape(self.M, [self.Ns, self.Ns])
                 if dy > 0:
-                    M = np.pad(M, ((dy,0),(0,0)), mode='constant')[:-dy,:]
                     V = np.pad(V, ((dy,0),(0,0)), mode='constant')[:-dy,:]
+                    M = np.pad(M, ((dy,0),(0,0)), mode='constant')[:-dy,:]
                 else:
-                    M = np.pad(M, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
                     V = np.pad(V, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
+                    M = np.pad(M, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
                 if dx > 0:
-                    M = np.pad(M, ((0,0),(dx,0)), mode='constant')[:,:-dx]
                     V = np.pad(V, ((0,0),(dx,0)), mode='constant')[:,:-dx]
+                    M = np.pad(M, ((0,0),(dx,0)), mode='constant')[:,:-dx]
                 else:
-                    M = np.pad(M, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
                     V = np.pad(V, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
-                self.M = M.flatten()
+                    M = np.pad(M, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
                 self.V = V.flatten()
+                self.M = M.flatten()
 
-        return (target, is_actual_target)
+        return (target, is_actual_target, np.reshape(self.V, [self.Ns, self.Ns]), np.reshape(self.M, [self.Ns, self.Ns]))
