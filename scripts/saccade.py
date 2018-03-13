@@ -12,7 +12,9 @@ import numpy as np
 
 class SaccadeNode():
     def __init__(self):
-        self.saccade = Saccade()
+        shift_activity = bool(rospy.get_param("~shift_activity", True))
+
+        self.saccade = Saccade(shift_activity)
 
         self.saliency_sub = rospy.Subscriber("/saliency_map", Float32MultiArray, self.saliency_map_callback, queue_size=1, buff_size=2**24)
 
