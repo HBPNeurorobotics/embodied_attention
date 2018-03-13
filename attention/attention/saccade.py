@@ -10,8 +10,8 @@ def gauss(x, y, X, Y, sigma):
 
 def f(x): return np.maximum(x, 0.)
 
-class Saccade():
-    def __init__(self):
+class Saccade:
+    def __init__(self, shift_activity):
 
         ## parameters
         self.N       =  1600       # number of neurons per type (visual, movement)
@@ -44,7 +44,7 @@ class Saccade():
         self.M               = np.zeros(self.N)            # movement neurons
         self.V               = np.zeros(self.N)            # visual neurons
 
-        self.shift_activity = False
+        self.shift_activity = shift_activity
     
     # numerical integration (simple Euler)
     def compute_saccade_target(self, saliency_map, dt):
@@ -85,6 +85,7 @@ class Saccade():
 
             # shift activity
             if self.shift_activity:
+                print("\tshifting activity")
                 dy = self.Ns/2 - int(ID/self.Ns)
                 dx = self.Ns/2 - np.mod(ID, self.Ns)
                 M = np.reshape(self.M, [self.Ns, self.Ns])
