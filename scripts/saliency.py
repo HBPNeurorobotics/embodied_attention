@@ -11,11 +11,12 @@ import numpy as np
 
 class SaliencyNode():
     def __init__(self):
+        tensorflow_path = rospy.get_param("~tensorflow_path", "/opt/tensorflow_venv/lib/python2.7/site-packages")
         model_file = rospy.get_param('~saliency_file', '/tmp/model.ckpt')
         network_input_height = float(rospy.get_param('~network_input_height', '192'))
         network_input_width = float(rospy.get_param('~network_input_width', '256'))
 
-        self.saliency = Saliency(model_file, network_input_height, network_input_width)
+        self.saliency = Saliency(tensorflow_path, model_file, network_input_height, network_input_width)
 
         image_sub = rospy.Subscriber("/rgb/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         self.saliency_map_pub = rospy.Publisher("/saliency_map", Float32MultiArray, queue_size=1)
