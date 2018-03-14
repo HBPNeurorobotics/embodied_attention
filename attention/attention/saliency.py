@@ -4,8 +4,6 @@ import sys
 import os
 import cv2 as cv
 import numpy as np
-import tensorflow as tf
-from tensorflow.python.client import device_lib
 
 def rescale_image(img, new_h, new_w):
     img_h, img_w = img.shape[:2]
@@ -52,7 +50,13 @@ def pad_image(img, new_h, new_w):
     return padded_img
 
 class Saliency():
-    def __init__(self, model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256):
+    def __init__(self, tensorflow_path='/opt/tensorflow_venv/lib/python2.7/site-packages', model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256):
+
+        import site
+        site.addsitedir(tensorflow_path)
+        import tensorflow as tf
+        from tensorflow.python.client import device_lib
+        self.tf = tf
 
         ### saliency
         meta_file = model_file + ".meta"
@@ -102,7 +106,7 @@ class Saliency():
 
         stim = stim.transpose(0, 3, 1, 2)
 
-        tf.reset_default_graph()
+        self.tf.reset_default_graph()
 
         saliency_map = self.sess.run(self.output, feed_dict={self.input: stim})
         saliency_map = saliency_map.squeeze()
