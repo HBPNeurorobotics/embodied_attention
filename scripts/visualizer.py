@@ -36,8 +36,7 @@ def rescale_image(img, new_h, new_w):
 
 class Visualizer():
     def __init__(self):
-        self.image_augmented_pub = rospy.Publisher("/image_visualized", Image, queue_size=1)
-        self.combined_pub = rospy.Publisher("/combined", Image, queue_size=1)
+        self.image_visualized_pub = rospy.Publisher("/image_visualized", Image, queue_size=1)
 
         self.image = None
 
@@ -76,22 +75,12 @@ class Visualizer():
         except CvBridgeError as e:
             print e
 
-        self.image = image
-
-        # visualization
-        if self.target is not None:
-            cv.circle(image, (self.target[0], self.target[1]), 2, (0, 0, 255))
-        if self.potential_target is not None:
-            cv.circle(image, (self.potential_target[0], self.potential_target[1]), 2, (0, 255, 0))
-
-        try:
-            image = self.cv_bridge.cv2_to_imgmsg(image, "bgr8")
-        except CvBridgeError as e:
-            print e
-
-        self.image_augmented_pub.publish(image)
+        self.image = image.copy()
 
     def saliency_map_image_callback(self, saliency_map_image):
+        if self.image is None:
+            return
+
         try:
             saliency_map_image = self.cv_bridge.imgmsg_to_cv2(saliency_map_image, "mono8")
         except CvBridgeError as e:
@@ -106,13 +95,18 @@ class Visualizer():
 
         combined = np.uint8(np.float64(self.image) * saliency_map_image_3)
 
+        # visualization
+        if self.target is not None:
+            cv.circle(combined, (self.target[0], self.target[1]), 2, (0, 0, 255))
+        if self.potential_target is not None:
+            cv.circle(combined, (self.potential_target[0], self.potential_target[1]), 2, (0, 255, 0))
+
         try:
             combined = self.cv_bridge.cv2_to_imgmsg(combined, "bgr8")
         except CvBridgeError as e:
             print e
 
-        self.combined_pub.publish(combined)
-
+        self.image_visualized_pub.publish(combined)
 
     def pan_callback(self, pos):
         self.target = None
