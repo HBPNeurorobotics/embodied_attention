@@ -62,12 +62,14 @@ class Visualizer():
         x = int(target.x * (float(len(self.image[0]))/self.saliency_width))
         y = int(target.y * (float(len(self.image))/self.saliency_height))
         self.target = (x, y)
+        self.potential_target = None
 
     def potential_target_callback(self, target):
         # scale to camera image size
         x = int(target.x * (float(len(self.image[0]))/self.saliency_width))
         y = int(target.y * (float(len(self.image))/self.saliency_height))
         self.potential_target = (x, y)
+        self.target = None
 
     def image_callback(self, image):
         try:
