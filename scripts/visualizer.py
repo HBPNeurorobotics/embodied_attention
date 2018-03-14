@@ -78,7 +78,6 @@ class Visualizer():
 
         self.image = image
 
-        return
         # visualization
         if self.target is not None:
             cv.circle(image, (self.target[0], self.target[1]), 2, (0, 0, 255))
