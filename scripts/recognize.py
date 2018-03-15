@@ -5,6 +5,7 @@ import roslib; roslib.load_manifest(PKG)
 import rospy
 
 import sys
+import os
 import numpy as np
 
 from sensor_msgs.msg import Image
@@ -12,9 +13,9 @@ from embodied_attention.srv import Roi
 
 from cv_bridge import CvBridge, CvBridgeError
 
-tensorflow_path = rospy.get_param("~tensorflow_path", "/opt/tensorflow_venv/lib/python2.7/site-packages")
-model_path = rospy.get_param("~model_path", '/opt/models/research')
-graph_path = rospy.get_param("~graph_path", '/opt/graph_def/frozen_inference_graph.pb')
+tensorflow_path = rospy.get_param("~tensorflow_path", os.path.expanduser('~') + "/.opt/tensorflow_venv/lib/python2.7/site-packages")
+model_path = rospy.get_param("~model_path", os.path.expanduser('~') + '/.opt/models/research')
+graph_path = rospy.get_param("~graph_path", os.path.expanduser('~') + '/.opt/graph_def/frozen_inference_graph.pb')
 
 import site
 site.addsitedir(tensorflow_path)

@@ -50,7 +50,7 @@ def pad_image(img, new_h, new_w):
     return padded_img
 
 class Saliency():
-    def __init__(self, tensorflow_path='/opt/tensorflow_venv/lib/python2.7/site-packages', model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256):
+    def __init__(self, tensorflow_path=os.path.expanduser('~') + '/.opt/tensorflow_venv/lib/python2.7/site-packages', model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256):
 
         import site
         site.addsitedir(tensorflow_path)
