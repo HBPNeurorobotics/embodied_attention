@@ -13,7 +13,7 @@ from embodied_attention.srv import Roi
 
 from cv_bridge import CvBridge, CvBridgeError
 
-tensorflow_path = rospy.get_param("~tensorflow_path", os.path.expanduser('~') + "/.opt/tensorflow_venv/lib/python2.7/site-packages")
+tensorflow_path = rospy.get_param("tensorflow_path", os.path.expanduser('~') + "/.opt/tensorflow_venv/lib/python2.7/site-packages")
 model_path = rospy.get_param("~model_path", os.path.expanduser('~') + '/.opt/models/research')
 graph_path = rospy.get_param("~graph_path", os.path.expanduser('~') + '/.opt/graph_def/frozen_inference_graph.pb')
 
