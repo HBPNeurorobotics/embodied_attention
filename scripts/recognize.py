@@ -55,7 +55,7 @@ class Recognize():
 
   def recognize(self, roi):
     try:
-      frame = self.cv_bridge.imgmsg_to_cv2(roi.RequestRoi, "rgb8")
+      frame = self.cv_bridge.imgmsg_to_cv2(roi.RequestRoi, "bgr8")
     except CvBridgeError as e:
       print e
 
