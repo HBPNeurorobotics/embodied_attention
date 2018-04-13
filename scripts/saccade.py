@@ -32,33 +32,12 @@ class SaccadeNode():
 
         self.cv_bridge = CvBridge()
 
+        self.saliency_map = None
+
     def saliency_map_callback(self, saliency_map):
-        if self.last_time is None:
-            self.last_time = rospy.get_time()
-        current_time = rospy.get_time()
-        dt = current_time - self.last_time
-        self.last_time = current_time
-
+        rospy.loginfo("Saliency_map updated")
         lo = saliency_map.layout
-        saliency_map = np.asarray(saliency_map.data[lo.data_offset:]).reshape(lo.dim[0].size, lo.dim[1].size)
-
-        (target, is_actual_target, V, M) = self.saccade.compute_saccade_target(saliency_map, dt)
-
-        self.saccade_potential_target_pub.publish(Point(*target))
-        if is_actual_target:
-            self.saccade_target_pub.publish(Point(*target))
-
-        V = (V - V.min()) / (V.max() - V.min())
-        M = (M - M.min()) / (M.max() - M.min())
-
-        try:
-            visual_neurons_image = self.cv_bridge.cv2_to_imgmsg(np.uint8(V * 255.), "mono8")
-            motor_neurons_image = self.cv_bridge.cv2_to_imgmsg(np.uint8(M * 255.), "mono8")
-        except CvBridgeError as e:
-            print e
-
-        self.visual_neurons_pub.publish(visual_neurons_image)
-        self.motor_neurons_pub.publish(motor_neurons_image)
+        self.saliency_map = np.asarray(saliency_map.data[lo.data_offset:]).reshape(lo.dim[0].size, lo.dim[1].size)
 
     def handle_reset_saccade(self, req):
         rospy.loginfo("Resetting node")
@@ -70,10 +49,38 @@ class SaccadeNode():
         self.saccade.shift()
         return
 
+    def loop(self):
+        hz = 1000. # 10000 would be perfect
+        rate = rospy.Rate(hz)
+        while not rospy.is_shutdown():
+            if self.saliency_map is None:
+                continue
+
+            (target, is_actual_target, V, M) = self.saccade.compute_saccade_target(self.saliency_map, 1./hz * 1000.)
+
+            self.saccade_potential_target_pub.publish(Point(*target))
+            if is_actual_target:
+                self.saccade_target_pub.publish(Point(*target))
+
+            V = (V - V.min()) / (V.max() - V.min())
+            M = (M - M.min()) / (M.max() - M.min())
+
+            try:
+                visual_neurons_image = self.cv_bridge.cv2_to_imgmsg(np.uint8(V * 255.), "mono8")
+                motor_neurons_image = self.cv_bridge.cv2_to_imgmsg(np.uint8(M * 255.), "mono8")
+            except CvBridgeError as e:
+                print e
+
+            self.visual_neurons_pub.publish(visual_neurons_image)
+            self.motor_neurons_pub.publish(motor_neurons_image)
+
+            rate.sleep()
+
+
 def main():
     rospy.init_node("saccade")
     saccade_node = SaccadeNode()
-    rospy.spin()
+    saccade_node.loop()
 
 if __name__ == "__main__":
     main()
