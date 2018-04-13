@@ -42,6 +42,7 @@ class HeadManager():
         self.memory = rospy.ServiceProxy('new_object', NewObject)
         self.probe_label = rospy.ServiceProxy('probe_label', ProbeLabel)
         self.probe_coordinate = rospy.ServiceProxy('probe_coordinate', ProbeCoordinate)
+        self.shifter = rospy.ServiceProxy('shift', Empty)
 
         self.look = rospy.Service('look', Look, self.look)
         self.mem = rospy.Service('memorize', SetBool, self.mem)
@@ -68,6 +69,7 @@ class HeadManager():
         self.saliency_height = float(rospy.get_param('~saliency_height', '192'))
         self.move_head = rospy.get_param("~move_head", False)
         self.move_eyes = rospy.get_param("~move_eyes", True)
+        self.shift = rospy.get_param("~shift", True)
         self.min_disparity = rospy.get_param("/hollie/camera/stereo_image_proc/min_disparity", "-16")
 
         self.cv_bridge = CvBridge()
@@ -206,6 +208,10 @@ class HeadManager():
             else:
                 rospy.loginfo("Not moving eyes, dropping")
                 return
+
+            if self.shift:
+                # shift activity
+                self.shifter()
 
             # create and publish roi
             size = 25

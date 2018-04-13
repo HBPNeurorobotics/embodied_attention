@@ -10,6 +10,7 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point
 import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
+from std_srvs.srv import Empty
 
 class SaccadeNode():
     def __init__(self):
@@ -25,6 +26,7 @@ class SaccadeNode():
         self.motor_neurons_pub = rospy.Publisher("/motor_neurons", Image, queue_size=1)
 
         self.reset_saccade_serv = rospy.Service('/reset_saccade', ResetSaccade, self.handle_reset_saccade)
+        self.shift_serv = rospy.Service('/shift', Empty, self.handle_shift)
 
         self.last_time = None
 
@@ -62,6 +64,11 @@ class SaccadeNode():
         rospy.loginfo("Resetting node")
         self.saccade = Saccade()
         return True
+
+    def handle_shift(self, req):
+        rospy.loginfo("Shifting activity")
+        self.saccade.shift()
+        return
 
 def main():
     rospy.init_node("saccade")

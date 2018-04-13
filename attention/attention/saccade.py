@@ -44,7 +44,7 @@ class Saccade:
         self.M               = np.zeros(self.N)            # movement neurons
         self.V               = np.zeros(self.N)            # visual neurons
 
-        self.shift_activity = shift_activity
+        self.last_winner = None
     
     # numerical integration (simple Euler)
     def compute_saccade_target(self, saliency_map, dt):
@@ -76,6 +76,7 @@ class Saccade:
             print("\tis actual target")
 
             is_actual_target = True
+            self.last_winner = ID
 
             # reset
             self.M[ID] = 0.
@@ -83,26 +84,27 @@ class Saccade:
             # inhibition of return
             self.V = self.V - gauss(self.X[ID], self.Y[ID], self.X, self.Y, self.sig_IoR)
 
-            # shift activity
-            if self.shift_activity:
-                print("\tshifting activity")
-                dy = self.Ns/2 - int(ID/self.Ns)
-                dx = self.Ns/2 - np.mod(ID, self.Ns)
-                V = np.reshape(self.V, [self.Ns, self.Ns])
-                M = np.reshape(self.M, [self.Ns, self.Ns])
-                if dy > 0:
-                    V = np.pad(V, ((dy,0),(0,0)), mode='constant')[:-dy,:]
-                    M = np.pad(M, ((dy,0),(0,0)), mode='constant')[:-dy,:]
-                else:
-                    V = np.pad(V, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
-                    M = np.pad(M, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
-                if dx > 0:
-                    V = np.pad(V, ((0,0),(dx,0)), mode='constant')[:,:-dx]
-                    M = np.pad(M, ((0,0),(dx,0)), mode='constant')[:,:-dx]
-                else:
-                    V = np.pad(V, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
-                    M = np.pad(M, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
-                self.V = V.flatten()
-                self.M = M.flatten()
-
         return (target, is_actual_target, np.reshape(self.V, [self.Ns, self.Ns]), np.reshape(self.M, [self.Ns, self.Ns]))
+
+    def shift(self):
+        # shift activity
+        if self.last_winner is not None:
+            print("\tShifting activity")
+            dy = self.Ns/2 - int(self.last_winner/self.Ns)
+            dx = self.Ns/2 - np.mod(self.last_winner, self.Ns)
+            V = np.reshape(self.V, [self.Ns, self.Ns])
+            M = np.reshape(self.M, [self.Ns, self.Ns])
+            if dy > 0:
+                V = np.pad(V, ((dy,0),(0,0)), mode='constant')[:-dy,:]
+                M = np.pad(M, ((dy,0),(0,0)), mode='constant')[:-dy,:]
+            else:
+                V = np.pad(V, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
+                M = np.pad(M, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
+            if dx > 0:
+                V = np.pad(V, ((0,0),(dx,0)), mode='constant')[:,:-dx]
+                M = np.pad(M, ((0,0),(dx,0)), mode='constant')[:,:-dx]
+            else:
+                V = np.pad(V, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
+                M = np.pad(M, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
+            self.V = V.flatten()
+            self.M = M.flatten()
