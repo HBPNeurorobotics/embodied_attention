@@ -67,7 +67,7 @@ class Curiosity():
                 disparity = self.camera_model.getDisparity(point_torso[2])
                 x = x + disparity
                 if x >= 0 and x < self.saliency_width and y >=0 and y < self.saliency_height:
-                    rr, cc = circle(y, x, 15, (len(saliency_map), len(saliency_map[0])))
+                    rr, cc = circle(y, x, 25, (len(saliency_map), len(saliency_map[0])))
                     saliency_map[rr, cc] = 0.
 
             self.saliency_map_curiosity_pub.publish(Float32MultiArray(layout=lo, data=saliency_map.flatten()))
