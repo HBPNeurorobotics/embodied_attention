@@ -11,7 +11,7 @@ def gauss(x, y, X, Y, sigma):
 def f(x): return np.maximum(x, 0.)
 
 class Saccade:
-    def __init__(self, shift_activity):
+    def __init__(self):
 
         ## parameters
         self.N       =  1600       # number of neurons per type (visual, movement)
