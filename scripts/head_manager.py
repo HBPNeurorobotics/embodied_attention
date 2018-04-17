@@ -295,18 +295,18 @@ class HeadManager():
         x = p.X[0]
         y = p.Y[0]
 
+        pan = x / 100 * (2 * math.pi)
+        tilt = y / 100 * (2 * math.pi)
+
         # adjust camera
-        if self.move_head:
-            self.pan_head_pub.publish(x/100.)
-            self.tilt_head_pub.publish(y/100.)
-            self.pan_eye_left_pub.publish(0.)
-            self.pan_eye_right_pub.publish(0.)
-            self.tilt_eye_pub.publish(0.)
+        if abs(pan) < self.pan_eye_limit and self.tilt_eye_lower_limit < tilt and tilt < self.tilt_eye_upper_limit:
+            self.pan_eye_left_pub.publish(pan)
+            self.pan_eye_right_pub.publish(pan)
+            self.tilt_eye_pub.publish(tilt)
+            return True
         else:
-            self.pan_eye_left_pub.publish(x/100.)
-            self.pan_eye_right_pub.publish(x/100.)
-            self.tilt_eye_pub.publish(y/100.)
-        return True
+            rospy.loginfo("Cannot look at " + label.Label + ", over eye joint limit and don't know how to move head yet..")
+            return False
 
     def mem(self, value):
         self.memorize = value.data
