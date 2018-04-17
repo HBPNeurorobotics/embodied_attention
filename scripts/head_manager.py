@@ -67,8 +67,8 @@ class HeadManager():
 
         self.saliency_width = float(rospy.get_param('~saliency_width', '256'))
         self.saliency_height = float(rospy.get_param('~saliency_height', '192'))
-        self.move_head = rospy.get_param("~move_head", False)
         self.move_eyes = rospy.get_param("~move_eyes", True)
+        self.move_head = rospy.get_param("~move_head", True)
         self.shift = rospy.get_param("~shift", True)
         self.min_disparity = rospy.get_param("/hollie/camera/stereo_image_proc/min_disparity", "-16")
 
