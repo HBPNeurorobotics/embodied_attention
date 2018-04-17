@@ -54,8 +54,8 @@ class Visualizer():
         target_sub = rospy.Subscriber("/saccade_target", Point, self.target_callback, queue_size=1, buff_size=2**24)
         potential_target_sub = rospy.Subscriber("/saccade_potential_target", Point, self.potential_target_callback, queue_size=1, buff_size=2**24)
 
-        pan_sub = rospy.Subscriber("/robot/hollie_left_eye_pan_joint/cmd_pos", Float64, self.pan_callback, queue_size=1, buff_size=2**24)
-        tilt_sub = rospy.Subscriber("/robot/hollie_eyes_tilt_joint/cmd_pos", Float64, self.tilt_callback, queue_size=1, buff_size=2**24)
+        pan_sub = rospy.Subscriber("/pan", Float64, self.pan_callback, queue_size=1, buff_size=2**24)
+        tilt_sub = rospy.Subscriber("/tilt", Float64, self.tilt_callback, queue_size=1, buff_size=2**24)
 
     def target_callback(self, target):
         # scale to camera image size
