@@ -6,6 +6,7 @@ import rospy
 from geometry_msgs.msg import Point
 from tf2_geometry_msgs import PointStamped
 from std_msgs.msg import Float64, String
+import std_msgs
 from std_srvs.srv import SetBool, Empty
 from sensor_msgs.msg import Image, CameraInfo, JointState
 from image_geometry import StereoCameraModel
@@ -37,12 +38,12 @@ class HeadManager():
         self.point_pub = rospy.Publisher("/saccade_point", PointStamped, queue_size=1)
         self.tilt_pub = rospy.Publisher("/tilt", Float64, queue_size=1)
         self.pan_pub = rospy.Publisher("/pan", Float64, queue_size=1)
+        self.shift_pub = rospy.Publisher("/shift", std_msgs.msg.Empty, queue_size=1)
 
         self.recognizer = rospy.ServiceProxy('recognize', Roi)
         self.memory = rospy.ServiceProxy('new_object', NewObject)
         self.probe_label = rospy.ServiceProxy('probe_label', ProbeLabel)
         self.probe_coordinate = rospy.ServiceProxy('probe_coordinate', ProbeCoordinate)
-        self.shifter = rospy.ServiceProxy('shift', Empty)
 
         self.look = rospy.Service('look', Look, self.look)
         self.mem = rospy.Service('memorize', SetBool, self.mem)
@@ -211,7 +212,7 @@ class HeadManager():
 
             if self.shift:
                 # shift activity
-                self.shifter()
+                self.shift_pub.publish(std_msgs.msg.Empty())
 
             # create and publish roi
             size = 25
