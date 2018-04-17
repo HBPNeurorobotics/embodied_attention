@@ -4,6 +4,7 @@ import roslib; roslib.load_manifest(PKG)
 
 import rospy
 from geometry_msgs.msg import Point
+import geometry_msgs
 from tf2_geometry_msgs import PointStamped
 from std_msgs.msg import Float64, String
 import std_msgs
@@ -11,7 +12,7 @@ from std_srvs.srv import SetBool, Empty
 from sensor_msgs.msg import Image, CameraInfo, JointState
 from image_geometry import StereoCameraModel
 from stereo_msgs.msg import DisparityImage
-from embodied_attention.srv import Roi, Look
+from embodied_attention.srv import Roi, Look, Transform
 from ros_holographic.srv import NewObject, ProbeLabel, ProbeCoordinate
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
@@ -47,6 +48,7 @@ class HeadManager():
 
         self.look = rospy.Service('look', Look, self.look)
         self.mem = rospy.Service('memorize', SetBool, self.mem)
+        self.transform = rospy.Service('transform', Transform, self.transform)
 
         self.camera_image = None
         self.camera_info_left = None
@@ -77,7 +79,7 @@ class HeadManager():
 
         self.memorize = True
 
-        self.tfBuffer = tf2_ros.Buffer()
+        self.tfBuffer = tf2_ros.Buffer(rospy.Duration(30))
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         self.transform = None
         self.static_frame = "hollie_base_x_link"
@@ -106,7 +108,7 @@ class HeadManager():
         else:
 
             if self.transform is None:
-                self.transform = self.tfBuffer.lookup_transform("camera_left_link_optical", self.static_frame, rospy.Time.now(), rospy.Duration(1.0))
+                self.transform = self.tfBuffer.lookup_transform("camera_left_link_optical", self.static_frame, rospy.Time(0))
 
             # scale saccade target to camera image size
             x = int(saccade.x * (float(self.camera_image.width)/self.saliency_width))
@@ -135,11 +137,12 @@ class HeadManager():
             t.point.z = point_eye[2]
 
             # publish as static point for curiosity
-            point_static = self.tfBuffer.transform(t, self.static_frame, rospy.Duration(0.1))
+            point_static = self.tfBuffer.transform(t, self.static_frame, rospy.Duration(0.0001))
             self.point_pub.publish(point_static)
 
             # publish as point in original eye frame
             point_wide_angle = self.tfBuffer.registration.get(type(point_static))(point_static, self.transform)
+
             point_wide_angle = (point_wide_angle.point.x, point_wide_angle.point.y, point_wide_angle.point.z)
             pan = -math.atan2(point_wide_angle[1], point_wide_angle[0])
             tilt = math.atan2(-point_wide_angle[2], math.sqrt(math.pow(point_wide_angle[0], 2) + math.pow(point_wide_angle[1], 2)))
@@ -147,7 +150,7 @@ class HeadManager():
             self.tilt_pub.publish(tilt)
 
             # transform to head frame
-            point_head = self.tfBuffer.transform(t, "base_link", rospy.Duration(0.1))
+            point_head = self.tfBuffer.transform(t, "base_link", rospy.Duration(0.0001))
             point_head = (point_head.point.x, point_head.point.y, point_head.point.z)
             print "point_head: " + str(point_head)
 
@@ -161,7 +164,6 @@ class HeadManager():
                     self.pan_eye_left_pub.publish(pan_eye)
                     self.pan_eye_right_pub.publish(pan_eye)
                     self.tilt_eye_pub.publish(tilt_eye)
-                    time.sleep(2)
                 elif self.move_head:
                     # trim head values
                     tilt_head_trimmed = tilt_head
@@ -183,10 +185,9 @@ class HeadManager():
                     rospy.loginfo("Moving head: %f, %f" % (pan_head, tilt_head))
                     self.pan_head_pub.publish(pan_head_trimmed)
                     self.tilt_head_pub.publish(tilt_head_trimmed)
-                    time.sleep(5)
 
                     # transform to eye frame
-                    point_eye = self.tfBuffer.transform(t, self.camera_model.tfFrame(), rospy.Duration(0.1))
+                    point_eye = self.tfBuffer.transform(t, self.camera_model.tfFrame(), rospy.Duration(0.0001))
                     point_eye = (point_eye.point.x, point_eye.point.y, point_eye.point.z)
                     print "point_eye after head movement: " + str(point_eye)
 
@@ -199,7 +200,6 @@ class HeadManager():
                         self.pan_eye_left_pub.publish(pan_eye)
                         self.pan_eye_right_pub.publish(pan_eye)
                         self.tilt_eye_pub.publish(tilt_eye)
-                        time.sleep(2)
                     else:
                         rospy.loginfo("Over eye joint limit even though we moved head, dropping")
                         return
@@ -311,6 +311,16 @@ class HeadManager():
     def mem(self, value):
         self.memorize = value.data
         return (True, 'success')
+
+    def transform(self, value):
+        point_new = geometry_msgs.msg.PointStamped()
+        point_new.header = value.req.header
+        point_new.point = value.req.point
+        transformed = self.tfBuffer.transform(point_new, self.camera_model.tfFrame())
+        transformed_new = PointStamped()
+        transformed_new.header = transformed.header
+        transformed_new.point = transformed.point
+        return transformed_new
 
 def main(args):
     rospy.init_node("head_manager")

@@ -7,7 +7,7 @@ project(embodied_attention)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs image_transport cv_bridge image_geometry message_generation)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs image_transport cv_bridge image_geometry geometry_msgs message_generation)
 find_package(ros_holographic OPTIONAL_COMPONENTS)
 find_package(OpenCV REQUIRED)
 
@@ -57,6 +57,7 @@ add_service_files(
   Roi.srv
   Look.srv
   ResetSaccade.srv
+  Transform.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -70,6 +71,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   sensor_msgs
+  geometry_msgs
 )
 
 ################################################
