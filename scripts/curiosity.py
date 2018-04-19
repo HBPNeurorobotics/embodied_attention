@@ -9,7 +9,10 @@ from sensor_msgs.msg import Image, CameraInfo, JointState
 from image_geometry import StereoCameraModel
 from stereo_msgs.msg import DisparityImage
 from geometry_msgs.msg import Point
+import geometry_msgs
 from tf2_geometry_msgs import PointStamped
+import tf2_geometry_msgs
+from embodied_attention.srv import Transform
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import tf2_ros
@@ -26,6 +29,8 @@ class Curiosity():
 
         self.saliency_map_curiosity_pub = rospy.Publisher("/saliency_map_curiosity", Float32MultiArray, queue_size=1)
         self.saliency_map_curiosity_image_pub = rospy.Publisher("/saliency_map_curiosity_image", Image, queue_size=1)
+
+        self.transform_proxy = rospy.ServiceProxy("/transform", Transform)
 
         self.camera_info_left = None
         self.camera_info_right = None
@@ -52,14 +57,15 @@ class Curiosity():
             # modify saliency map
             self.camera_model.fromCameraInfo(self.camera_info_left, self.camera_info_right)
             disparity_image = self.cv_bridge.imgmsg_to_cv2(self.disparity_image.image)
-            for target in self.targets:
-                target.header.stamp = rospy.Time.now()
-                try:
-                    transformed = self.tfBuffer.transform(target, self.camera_model.tfFrame(), timeout=rospy.Duration(0.1))
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                    rospy.loginfo("Transformation gone wrong")
-                    traceback.print_exc()
-                    return
+            for point in self.targets:
+                point_new = geometry_msgs.msg.PointStamped()
+                point_new.header = point.header
+                point_new.point = point.point
+                transformed = self.transform_proxy(point_new).res
+                transformed_new = tf2_geometry_msgs.PointStamped()
+                transformed_new.header = transformed.header
+                transformed_new.point = transformed.point
+                transformed = transformed_new
                 point_torso = (-transformed.point.y, -transformed.point.z, transformed.point.x)
                 pixel = self.camera_model.project3dToPixel(point_torso)
                 x = int(pixel[0][0] * (self.saliency_width/float(self.camera_info_left.width)))
