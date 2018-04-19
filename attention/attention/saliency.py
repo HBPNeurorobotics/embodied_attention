@@ -60,24 +60,6 @@ class Saliency():
 
         ### saliency
         meta_file = model_file + ".meta"
-        index_file = model_file + ".index"
-        data_file = model_file + ".data-00000-of-00001"
-
-        if (not os.path.exists(meta_file) or not os.path.exists(index_file) or not os.path.exists(data_file)):
-            print("Model files not present:\n\t{}\n\t{}\n\t{}\nWe will download them from owncloud."
-                .format(meta_file, index_file, data_file))
-            import wget
-            import ssl
-            ssl._create_default_https_context = ssl._create_unverified_context
-            if any([(dev.device_type == "GPU") for dev in device_lib.list_local_devices()]):
-                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/hdjl7TjzSUqF1Ww/download", meta_file)
-                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/DCPB80foqkteuC4/download", index_file)
-                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/bkpmmvrVkeELapr/download", data_file)
-            else:
-                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/TNpWFSX8xLvfbYD/download", meta_file)
-                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/sDCFUGTrzJyhDA5/download", index_file)
-                wget.download("https://neurorobotics-files.net/owncloud/index.php/s/Scti429S7D11tMv/download", data_file)
-
         self.sess = tf.Session()
         self.net = tf.train.import_meta_graph(meta_file)
         self.net.restore(self.sess, model_file)
