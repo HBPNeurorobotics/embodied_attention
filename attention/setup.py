@@ -17,6 +17,6 @@ setup(
     keywords = "attention, saliency, saccade",
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     # Choose your license
-    license='FZI',
+    license='GPLv3',
     install_requires=[]
 )
