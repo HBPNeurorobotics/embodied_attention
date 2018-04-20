@@ -12,7 +12,7 @@ from std_srvs.srv import SetBool, Empty
 from sensor_msgs.msg import Image, CameraInfo, JointState
 from image_geometry import StereoCameraModel
 from stereo_msgs.msg import DisparityImage
-from embodied_attention.srv import Roi, Look, Transform
+from embodied_attention.srv import Roi, Look, Transform, Target
 from ros_holographic.srv import NewObject, ProbeLabel, ProbeCoordinate
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
@@ -46,6 +46,7 @@ class HeadManager():
         self.probe_label = rospy.ServiceProxy('probe_label', ProbeLabel)
         self.probe_coordinate = rospy.ServiceProxy('probe_coordinate', ProbeCoordinate)
 
+        self.saccade = rospy.Service('saccade', Target, self.saccade)
         self.look = rospy.Service('look', Look, self.look)
         self.mem = rospy.Service('memorize', SetBool, self.mem)
         self.transform = rospy.Service('transform', Transform, self.transform)
@@ -84,7 +85,7 @@ class HeadManager():
         self.transform = None
         self.static_frame = "hollie_base_x_link"
 
-        saccade_sub = rospy.Subscriber("/saccade_target", Point, self.saccade_callback, queue_size=1, buff_size=2**24)
+        # saccade_sub = rospy.Subscriber("/saccade_target", Point, self.saccade_callback, queue_size=1, buff_size=2**24)
         camera_sub = rospy.Subscriber("/hollie/camera/left/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         camera_info_left_sub = rospy.Subscriber("/hollie/camera/left/camera_info", CameraInfo, self.camera_info_left_callback, queue_size=1, buff_size=2**24)
         camera_info_right_sub = rospy.Subscriber("/hollie/camera/right/camera_info", CameraInfo, self.camera_info_right_callback, queue_size=1, buff_size=2**24)
@@ -92,23 +93,25 @@ class HeadManager():
         joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback, queue_size=1, buff_size=2**24)
         link_state_sub = rospy.Subscriber("/gazebo/link_states", LinkStates, self.link_state_callback, queue_size=1, buff_size=2**24)
 
-    def saccade_callback(self, saccade):
+    def saccade(self, saccade):
         if self.camera_image is None:
             rospy.loginfo("Received saccade but camera_image is missing")
-            return
+            return False
         elif self.camera_info_left is None:
             rospy.loginfo("Received saccade but camera_info_left is missing")
-            return
+            return False
         elif self.camera_info_right is None:
             rospy.loginfo("Received saccade but camera_info_right is missing")
-            return
+            return False
         elif self.disparity_image is None:
             rospy.loginfo("Received saccade but disparity_image is missing")
-            return
+            return False
         else:
 
             if self.transform is None:
                 self.transform = self.tfBuffer.lookup_transform("camera_left_link_optical", self.static_frame, rospy.Time(0))
+
+            saccade = saccade.target
 
             # scale saccade target to camera image size
             x = int(saccade.x * (float(self.camera_image.width)/self.saliency_width))
@@ -202,13 +205,13 @@ class HeadManager():
                         self.tilt_eye_pub.publish(tilt_eye)
                     else:
                         rospy.loginfo("Over eye joint limit even though we moved head, dropping")
-                        return
+                        return False
                 else:
                     rospy.loginfo("Over eye joint limit and not moving head, dropping")
-                    return
+                    return False
             else:
                 rospy.loginfo("Not moving eyes, dropping")
-                return
+                return False
 
             if self.shift:
                 # shift activity
@@ -216,10 +219,19 @@ class HeadManager():
 
             # create and publish roi
             size = 25
-            x1 = self.camera_info_left.width/2 - size
-            y1 = self.camera_info_left.height/2 - size
-            x2 = self.camera_info_left.width/2 + size
-            y2 = self.camera_info_left.height/2 + size
+            # x1 = self.camera_info_left.width/2 - size
+            # y1 = self.camera_info_left.height/2 - size
+            # x2 = self.camera_info_left.width/2 + size
+            # y2 = self.camera_info_left.height/2 + size
+            x1 = x - size
+            y1 = y - size
+            x2 = x + size
+            y2 = y + size
+
+            # wait for controller and new image
+            # rospy.sleep(rospy.Duration(0.01))
+            rospy.loginfo("Grabbing roi now!")
+
             try:
                 image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
             except CvBridgeError as e:
@@ -262,6 +274,7 @@ class HeadManager():
                 rospy.loginfo("Recognize or memory service call failed")
 
         print
+        return True
 
     def image_callback(self, camera_image):
         self.camera_image = camera_image
