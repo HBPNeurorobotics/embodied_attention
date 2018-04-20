@@ -41,50 +41,50 @@ class Saccade:
         self.tau = 20.
         
         # (state) variables
-        self.M               = np.zeros(self.N)            # movement neurons
-        self.V               = np.zeros(self.N)            # visual neurons
+        self.motor_neurons  = np.zeros(self.N) # movement neurons
+        self.visual_neurons = np.zeros(self.N) # visual neurons
 
         self.last_winner = None
     
     # numerical integration (simple Euler)
     def compute_saccade_target(self, saliency_map, dt):
         # noise propagation
-        self.dsig_v  = np.sqrt(dt/self.tau)*self.sig_noise # input (visual neuron) noise
-        self.dsig_m  = np.sqrt(dt)*self.sig_noise          # movement neuron noise
+        self.dsig_v = np.sqrt(dt/self.tau)*self.sig_noise # input (visual neuron) noise
+        self.dsig_m = np.sqrt(dt)*self.sig_noise          # movement neuron noise
 
         sal = misc.imresize(saliency_map, [self.Ns, self.Ns])
         sal = np.reshape(sal, [self.N, ])/235.*0.55+.2
 
         # update
-        self.V += dt*(-self.V + sal)/self.tau + self.dsig_v*np.random.randn(self.N)
-        self.M += dt*(-self.k*self.M + f(self.V - self.g) - self.G*np.dot(self.W, f(self.M))) + self.dsig_m*np.random.randn(self.N)
+        self.visual_neurons += dt*(-self.visual_neurons + sal)/self.tau + self.dsig_v*np.random.randn(self.N)
+        self.motor_neurons += dt*(-self.k*self.motor_neurons + f(self.visual_neurons - self.g) - self.G*np.dot(self.W, f(self.motor_neurons))) + self.dsig_m*np.random.randn(self.N)
 
-        ID = np.argmax(self.M)
+        ID = np.argmax(self.motor_neurons)
 
         # transform to coordinates in saliency map
         y = int(ID/self.Ns) + 0.5
         x = np.mod(ID, self.Ns) + 0.5
         y_scaled = int(float(len(saliency_map))/self.Ns * y)
         x_scaled = int(float(len(saliency_map[0]))/self.Ns * x)
-        print("Winning neuron: x: %3d, y: %3d, value: %f" % (x_scaled, y_scaled, self.M[ID]))
+        print("Winning neuron: x: %3d, y: %3d, value: %f" % (x_scaled, y_scaled, self.motor_neurons[ID]))
 
-        target = (x_scaled, y_scaled, self.M[ID])
+        target = (x_scaled, y_scaled, self.motor_neurons[ID])
         is_actual_target = False
 
         # check if target
-        if (self.M[ID] >= self.theta):
+        if (self.motor_neurons[ID] >= self.theta):
             print("\tis actual target")
 
             is_actual_target = True
             self.last_winner = ID
 
             # reset
-            self.M[ID] = 0.
+            self.motor_neurons[ID] = 0.
 
             # inhibition of return
-            self.V = self.V - gauss(self.X[ID], self.Y[ID], self.X, self.Y, self.sig_IoR)
+            self.visual_neurons = self.visual_neurons - gauss(self.X[ID], self.Y[ID], self.X, self.Y, self.sig_IoR)
 
-        return (target, is_actual_target, np.reshape(self.V, [self.Ns, self.Ns]), np.reshape(self.M, [self.Ns, self.Ns]))
+        return (target, is_actual_target, np.reshape(self.visual_neurons, [self.Ns, self.Ns]), np.reshape(self.motor_neurons, [self.Ns, self.Ns]))
 
     def shift(self):
         # shift activity
@@ -92,19 +92,19 @@ class Saccade:
             print("\tShifting activity")
             dy = self.Ns/2 - int(self.last_winner/self.Ns)
             dx = self.Ns/2 - np.mod(self.last_winner, self.Ns)
-            V = np.reshape(self.V, [self.Ns, self.Ns])
-            M = np.reshape(self.M, [self.Ns, self.Ns])
+            visual_neurons = np.reshape(self.visual_neurons, [self.Ns, self.Ns])
+            motor_neurons = np.reshape(self.motor_neurons, [self.Ns, self.Ns])
             if dy > 0:
-                V = np.pad(V, ((dy,0),(0,0)), mode='constant')[:-dy,:]
-                M = np.pad(M, ((dy,0),(0,0)), mode='constant')[:-dy,:]
+                visual_neurons = np.pad(visual_neurons, ((dy,0),(0,0)), mode='constant')[:-dy,:]
+                motor_neurons = np.pad(motor_neurons, ((dy,0),(0,0)), mode='constant')[:-dy,:]
             else:
-                V = np.pad(V, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
-                M = np.pad(M, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
+                visual_neurons = np.pad(visual_neurons, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
+                motor_neurons = np.pad(motor_neurons, ((0,-dy),(0,0)), mode='constant')[-dy:,:]
             if dx > 0:
-                V = np.pad(V, ((0,0),(dx,0)), mode='constant')[:,:-dx]
-                M = np.pad(M, ((0,0),(dx,0)), mode='constant')[:,:-dx]
+                visual_neurons = np.pad(visual_neurons, ((0,0),(dx,0)), mode='constant')[:,:-dx]
+                motor_neurons = np.pad(motor_neurons, ((0,0),(dx,0)), mode='constant')[:,:-dx]
             else:
-                V = np.pad(V, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
-                M = np.pad(M, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
-            self.V = V.flatten()
-            self.M = M.flatten()
+                visual_neurons = np.pad(visual_neurons, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
+                motor_neurons = np.pad(motor_neurons, ((0,0),(0,-dx)), mode='constant')[:,-dx:]
+            self.visual_neurons = visual_neurons.flatten()
+            self.motor_neurons = motor_neurons.flatten()
