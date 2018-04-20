@@ -54,18 +54,18 @@ class SaccadeNode():
             if self.saliency_map is None:
                 continue
 
-            (target, is_actual_target, V, M) = self.saccade.compute_saccade_target(self.saliency_map, 1./hz * 1000.)
+            (target, is_actual_target, visual_neurons, motor_neurons) = self.saccade.compute_saccade_target(self.saliency_map, 1./hz * 1000.)
 
             self.saccade_potential_target_pub.publish(Point(*target))
             if is_actual_target:
                 self.saccade_target_pub.publish(Point(*target))
 
-            V = (V - V.min()) / (V.max() - V.min())
-            M = (M - M.min()) / (M.max() - M.min())
+            visual_neurons = (visual_neurons - visual_neurons.min()) / (visual_neurons.max() - visual_neurons.min())
+            motor_neurons = (motor_neurons - motor_neurons.min()) / (motor_neurons.max() - motor_neurons.min())
 
             try:
-                visual_neurons_image = self.cv_bridge.cv2_to_imgmsg(np.uint8(V * 255.), "mono8")
-                motor_neurons_image = self.cv_bridge.cv2_to_imgmsg(np.uint8(M * 255.), "mono8")
+                visual_neurons_image = self.cv_bridge.cv2_to_imgmsg(np.uint8(visual_neurons * 255.), "mono8")
+                motor_neurons_image = self.cv_bridge.cv2_to_imgmsg(np.uint8(motor_neurons * 255.), "mono8")
             except CvBridgeError as e:
                 print e
 
