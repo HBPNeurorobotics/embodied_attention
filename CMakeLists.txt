@@ -58,6 +58,7 @@ add_service_files(
   Look.srv
   ResetSaccade.srv
   Transform.srv
+  Target.srv
 )
 
 ## Generate actions in the 'action' folder
