@@ -40,6 +40,7 @@ class HeadManager():
         self.tilt_pub = rospy.Publisher("/tilt", Float64, queue_size=1)
         self.pan_pub = rospy.Publisher("/pan", Float64, queue_size=1)
         self.shift_pub = rospy.Publisher("/shift", std_msgs.msg.Empty, queue_size=1)
+        self.status_pub = rospy.Publisher("/status", String, queue_size=1)
 
         self.recognizer = rospy.ServiceProxy('recognize', Roi)
         self.memory = rospy.ServiceProxy('new_object', NewObject)
@@ -205,12 +206,15 @@ class HeadManager():
                         self.tilt_eye_pub.publish(tilt_eye)
                     else:
                         rospy.loginfo("Over eye joint limit even though we moved head, dropping")
+                        self.status_pub.publish("dropping")
                         return False
                 else:
                     rospy.loginfo("Over eye joint limit and not moving head, dropping")
+                    self.status_pub.publish("dropping")
                     return False
             else:
                 rospy.loginfo("Not moving eyes, dropping")
+                self.status_pub.publish("dropping")
                 return False
 
             if self.shift:
