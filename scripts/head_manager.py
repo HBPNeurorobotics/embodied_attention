@@ -260,11 +260,9 @@ class HeadManager():
                             res = "Changed: Found %s where %s was before" % (label, probe_ans.Label[0])
                     else:
                         res = "New: Found %s, which wasn't here before" % label
+                    res = res + " at %d, %d" % (mem_x, mem_y)
                     rospy.loginfo(res)
                     self.probe_pub.publish(res)
-                    loc = "at %d, %d" % (mem_x, mem_y)
-                    rospy.loginfo(loc)
-                    self.probe_pub.publish(loc)
             except rospy.ServiceException:
                 rospy.loginfo("Recognize or memory service call failed")
 
