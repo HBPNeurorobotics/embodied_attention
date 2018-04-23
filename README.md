@@ -10,11 +10,8 @@ The integration in ROS has the advantage that the model can be run on a physical
 
 ### Dependencies
 
-* keras==1.2.2
-* theano==0.9.0
+* tensorflow
 * scikit-image
-* h5py
-* wget (used to download the weights/topology of the saliency network on first run)
 
 ### Testing the model with your webcam
 
