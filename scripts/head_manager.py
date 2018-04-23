@@ -86,7 +86,6 @@ class HeadManager():
         self.transform = None
         self.static_frame = "hollie_base_x_link"
 
-        # saccade_sub = rospy.Subscriber("/saccade_target", Point, self.saccade_callback, queue_size=1, buff_size=2**24)
         camera_sub = rospy.Subscriber("/hollie/camera/left/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         camera_info_left_sub = rospy.Subscriber("/hollie/camera/left/camera_info", CameraInfo, self.camera_info_left_callback, queue_size=1, buff_size=2**24)
         camera_info_right_sub = rospy.Subscriber("/hollie/camera/right/camera_info", CameraInfo, self.camera_info_right_callback, queue_size=1, buff_size=2**24)
@@ -223,18 +222,10 @@ class HeadManager():
 
             # create and publish roi
             size = 25
-            # x1 = self.camera_info_left.width/2 - size
-            # y1 = self.camera_info_left.height/2 - size
-            # x2 = self.camera_info_left.width/2 + size
-            # y2 = self.camera_info_left.height/2 + size
             x1 = x - size
             y1 = y - size
             x2 = x + size
             y2 = y + size
-
-            # wait for controller and new image
-            # rospy.sleep(rospy.Duration(0.01))
-            rospy.loginfo("Grabbing roi now!")
 
             try:
                 image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
