@@ -94,4 +94,16 @@ class Saliency():
         saliency_map = saliency_map.squeeze()
         saliency_map = (saliency_map - saliency_map.min()) / (saliency_map.max() - saliency_map.min())
 
+        thickness = 50
+
+        for c in range(0, len(saliency_map)):
+            for i in range(0, thickness):
+                saliency_map[c][i] *= (1 - (thickness-i)/float(thickness))
+                saliency_map[c][len(saliency_map[0]) - i - 1] *= (1 - (thickness-i)/float(thickness))
+
+        for r in range(0, len(saliency_map[0])):
+            for i in range(0, thickness):
+                saliency_map[i][r] *= (1 - (thickness-i)/float(thickness))
+                saliency_map[len(saliency_map) - i - 1][r] *= (1 - (thickness-i)/float(thickness))
+
         return saliency_map
