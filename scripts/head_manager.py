@@ -240,9 +240,11 @@ class HeadManager():
 
             try:
                 # object recognition
-                label = self.recognizer(roi).Label
+                ans = self.recognizer(roi)
+                label = ans.Label
+                certainty = ans.Certainty
                 self.label_pub.publish(label)
-                rospy.loginfo("Got label %s" % label)
+                rospy.loginfo("Got label %s with certainty %f" % (label, certainty))
 
                 mem_x = pan / (2 * math.pi) * 100
                 mem_y = tilt / (2 * math.pi) * 100

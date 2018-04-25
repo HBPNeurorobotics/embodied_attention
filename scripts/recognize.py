@@ -9,7 +9,7 @@ import os
 import numpy as np
 
 from sensor_msgs.msg import Image
-from embodied_attention.srv import Roi
+from embodied_attention.srv import Roi, RoiResponse
 
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -79,7 +79,7 @@ class Recognize():
         print self.category_index[classes[i]]['name'] + ": " + str(scores[i])
     print
 
-    return self.category_index[classes[0]]['name']
+    return RoiResponse(self.category_index[classes[0]]['name'], scores[0])
 
 def main(args):
   rospy.init_node("recognize")
