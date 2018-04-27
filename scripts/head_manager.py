@@ -109,7 +109,12 @@ class HeadManager():
         else:
 
             if self.transform is None:
-                self.transform = self.tfBuffer.lookup_transform("camera_left_link_optical", self.static_frame, rospy.Time(0))
+                try:
+                    self.transform = self.tfBuffer.lookup_transform("camera_left_link_optical", self.static_frame, rospy.Time(0))
+                except:
+                    rospy.loginfo("Transformation gone wrong, dropping")
+                    self.status_pub.publish("dropping")
+                    return False
 
             saccade = saccade.target
 
@@ -140,7 +145,12 @@ class HeadManager():
             t.point.z = point_eye[2]
 
             # publish as static point for curiosity
-            point_static = self.tfBuffer.transform(t, self.static_frame, rospy.Duration(0.0001))
+            try:
+                point_static = self.tfBuffer.transform(t, self.static_frame)
+            except:
+                rospy.loginfo("Transformation gone wrong, dropping")
+                self.status_pub.publish("dropping")
+                return False
             self.point_pub.publish(point_static)
 
             # publish as point in original eye frame
@@ -153,7 +163,12 @@ class HeadManager():
             self.tilt_pub.publish(tilt)
 
             # transform to head frame
-            point_head = self.tfBuffer.transform(t, "base_link", rospy.Duration(0.0001))
+            try:
+                point_head = self.tfBuffer.transform(t, "base_link")
+            except:
+                rospy.loginfo("Transformation gone wrong, dropping")
+                self.status_pub.publish("dropping")
+                return False
             point_head = (point_head.point.x, point_head.point.y, point_head.point.z)
             print "point_head: " + str(point_head)
 
@@ -190,7 +205,12 @@ class HeadManager():
                     self.tilt_head_pub.publish(tilt_head_trimmed)
 
                     # transform to eye frame
-                    point_eye = self.tfBuffer.transform(t, self.camera_model.tfFrame(), rospy.Duration(0.0001))
+                    try:
+                        point_eye = self.tfBuffer.transform(t, self.camera_model.tfFrame())
+                    except:
+                        rospy.loginfo("Transformation gone wrong, dropping")
+                        self.status_pub.publish("dropping")
+                        return False
                     point_eye = (point_eye.point.x, point_eye.point.y, point_eye.point.z)
                     print "point_eye after head movement: " + str(point_eye)
 
