@@ -2,7 +2,7 @@
 <launch>
   <node name="kinect" pkg="openni_camera" type="openni_node">
   </node>
-  <node name="forward" pkg="embodied_attention" type="forward.py">
+  <node name="saliency" pkg="embodied_attention" type="saliency.py">
   </node>
   <node name="get_ray" pkg="embodied_attention" type="get_rays">
   </node>

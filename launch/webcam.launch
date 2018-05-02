@@ -1,13 +1,15 @@
 <?xml version="1.0"?>
 <launch>
-  <node name="forward" pkg="embodied_attention" type="forward.py">
-    <param name="saliency_model_file" value="$(find embodied_attention)/model/model.hdf5"/>
-    <param name="saliency_weight_file" value="$(find embodied_attention)/model/weights.hdf5"/>
+  <node name="saliency" pkg="embodied_attention" type="saliency.py">
+    <param name="saliency_file" value="$(find embodied_attention)/model/model.ckpt"/>
+    <param name="network_input_width" value="256"/>
+    <param name="network_input_height" value="192"/>
+    <param name="clip" value="False"/>
   </node>
   <node name="webcam" pkg="usb_cam" type="usb_cam_node">
     <remap from="/webcam/image_raw" to="/rgb/image_raw"/>
   </node>
   <node name="img_view" pkg="image_view" type="image_view">
-    <remap from="/image" to="/saliency_map"/>
+    <remap from="/image" to="/saliency_map_image"/>
   </node>
 </launch>
