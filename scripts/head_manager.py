@@ -219,7 +219,7 @@ class HeadManager():
                     print "move_eye after head movement: %f, %f" % (tilt_eye, pan_eye)
 
                     if abs(pan_eye) < self.pan_eye_limit and self.tilt_eye_lower_limit < tilt_eye and tilt_eye < self.tilt_eye_upper_limit:
-                        rospy.loginfo("Moving eyes: %f, %f" % (pan_eye, tilt_eye))
+                        rospy.loginfo("Moving eyes: %f, %f" % (tilt_eye, pan_eye))
                         self.pan_eye_left_pub.publish(pan_eye)
                         self.pan_eye_right_pub.publish(pan_eye)
                         self.tilt_eye_pub.publish(tilt_eye)
