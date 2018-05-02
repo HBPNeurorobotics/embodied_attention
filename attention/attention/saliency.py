@@ -50,7 +50,7 @@ def pad_image(img, new_h, new_w):
     return padded_img
 
 class Saliency():
-    def __init__(self, tensorflow_path=os.path.expanduser('~') + '/.opt/tensorflow_venv/lib/python2.7/site-packages', model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256):
+    def __init__(self, tensorflow_path=os.path.expanduser('~') + '/.opt/tensorflow_venv/lib/python2.7/site-packages', model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256, clip=False):
 
         import site
         site.addsitedir(tensorflow_path)
@@ -69,6 +69,7 @@ class Saliency():
 
         self.network_input_height = int(network_input_height)
         self.network_input_width = int(network_input_width)
+        self.clip = bool(clip)
 
     def __del__(self):
         self.sess.close()
@@ -92,7 +93,10 @@ class Saliency():
 
         saliency_map = self.sess.run(self.output, feed_dict={self.input: stim})
         saliency_map = saliency_map.squeeze()
-        saliency_map = (saliency_map - saliency_map.min()) / (saliency_map.max() - saliency_map.min())
+        if self.clip:
+            saliency_map = saliency_map.clip(0)
+        else:
+            saliency_map = (saliency_map - saliency_map.min()) / (saliency_map.max() - saliency_map.min())
 
         thickness = 50
 
