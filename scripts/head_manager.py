@@ -205,6 +205,7 @@ class HeadManager():
                     self.tilt_head_pub.publish(tilt_head_trimmed)
 
                     # transform to eye frame
+                    t.point.y = -t.point.y
                     try:
                         point_eye = self.tfBuffer.transform(t, self.camera_model.tfFrame())
                     except:
