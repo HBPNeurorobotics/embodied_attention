@@ -76,6 +76,7 @@ class HeadManager():
         self.move_head = rospy.get_param("~move_head", True)
         self.shift = rospy.get_param("~shift", True)
         self.min_disparity = rospy.get_param("/hollie/camera/stereo_image_proc/min_disparity", "-16")
+        self.recognize = rospy.get_param("~recognize", True)
 
         self.cv_bridge = CvBridge()
 
@@ -258,6 +259,9 @@ class HeadManager():
             except CvBridgeError as e:
                 print e
             self.roi_pub.publish(roi)
+
+            if not self.recognize:
+                return True
 
             try:
                 # object recognition
