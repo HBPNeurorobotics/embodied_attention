@@ -47,10 +47,10 @@ class HeadManager():
         self.probe_label = rospy.ServiceProxy('probe_label', ProbeLabel)
         self.probe_coordinate = rospy.ServiceProxy('probe_coordinate', ProbeCoordinate)
 
-        self.saccade = rospy.Service('saccade', Target, self.saccade)
-        self.look = rospy.Service('look', Look, self.look)
-        self.mem = rospy.Service('memorize', SetBool, self.mem)
-        self.transform = rospy.Service('transform', Transform, self.transform)
+        self.saccade_ser = rospy.Service('saccade', Target, self.saccade)
+        self.look_ser = rospy.Service('look', Look, self.look)
+        self.probe_ser = rospy.Service('probe', SetBool, self.probe)
+        self.transform_ser = rospy.Service('transform', Transform, self.transform)
 
         self.camera_image = None
         self.camera_info_left = None
@@ -77,10 +77,9 @@ class HeadManager():
         self.shift = rospy.get_param("~shift", True)
         self.min_disparity = rospy.get_param("/hollie/camera/stereo_image_proc/min_disparity", "-16")
         self.recognize = rospy.get_param("~recognize", True)
+        self.probe = rospy.get_param("~probe", False)
 
         self.cv_bridge = CvBridge()
-
-        self.memorize = True
 
         self.tfBuffer = tf2_ros.Buffer(rospy.Duration(30))
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
@@ -274,11 +273,7 @@ class HeadManager():
                 mem_x = pan / (2 * math.pi) * 100
                 mem_y = tilt / (2 * math.pi) * 100
 
-                if self.memorize:
-                    # store in memory
-                    self.memory(mem_x, mem_y, label)
-                    rospy.loginfo("Stored in memory at %d, %d" % (mem_x, mem_y))
-                else:
+                if self.probe:
                     probe_ans = self.probe_coordinate(mem_x, mem_y)
                     if probe_ans.return_value and len(probe_ans.Label) > 0:
                         if probe_ans.Label[0] == label:
@@ -290,6 +285,9 @@ class HeadManager():
                     res = res + " at %d, %d" % (mem_x, mem_y)
                     rospy.loginfo(res)
                     self.probe_pub.publish(res)
+                # store in memory
+                self.memory(mem_x, mem_y, label)
+                rospy.loginfo("Stored in memory at %d, %d" % (mem_x, mem_y))
             except rospy.ServiceException:
                 rospy.loginfo("Recognize or memory service call failed")
 
@@ -341,8 +339,8 @@ class HeadManager():
             rospy.loginfo("Cannot look at " + label.Label + ", over eye joint limit and don't know how to move head yet..")
             return False
 
-    def mem(self, value):
-        self.memorize = value.data
+    def probe(self, value):
+        self.probe = value.data
         return (True, 'success')
 
     def transform(self, value):
