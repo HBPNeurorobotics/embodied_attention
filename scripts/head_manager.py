@@ -123,6 +123,24 @@ class HeadManager():
             x = int(saccade.x * (float(self.camera_image.width)/self.saliency_width))
             y = int(saccade.y * (float(self.camera_image.height)/self.saliency_height))
 
+            # create and publish roi
+            size = 25
+            x1 = max(0, x - size)
+            y1 = max(0, y - size)
+            x2 = min(x + size, self.camera_image.width)
+            y2 = min(y + size, self.camera_image.height)
+
+            try:
+                image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+            except CvBridgeError as e:
+                print e
+            roi = image[y1:y2, x1:x2]
+            try:
+                roi = self.cv_bridge.cv2_to_imgmsg(roi, "bgr8")
+            except CvBridgeError as e:
+                print e
+            self.roi_pub.publish(roi)
+
             # get point in eye frame
             disparity_image = self.cv_bridge.imgmsg_to_cv2(self.disparity_image.image)
             disparity = disparity_image[y][x] - (self.min_disparity - 2)
@@ -241,24 +259,6 @@ class HeadManager():
             if self.shift:
                 # shift activity
                 self.shift_pub.publish(std_msgs.msg.Empty())
-
-            # create and publish roi
-            size = 25
-            x1 = max(0, x - size)
-            y1 = max(0, y - size)
-            x2 = min(x + size, self.camera_image.width)
-            y2 = min(y + size, self.camera_image.height)
-
-            try:
-                image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-            except CvBridgeError as e:
-                print e
-            roi = image[y1:y2, x1:x2]
-            try:
-                roi = self.cv_bridge.cv2_to_imgmsg(roi, "bgr8")
-            except CvBridgeError as e:
-                print e
-            self.roi_pub.publish(roi)
 
             if not self.recognize:
                 return True
