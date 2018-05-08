@@ -244,10 +244,10 @@ class HeadManager():
 
             # create and publish roi
             size = 25
-            x1 = x - size
-            y1 = y - size
-            x2 = x + size
-            y2 = y + size
+            x1 = max(0, x - size)
+            y1 = max(0, y - size)
+            x2 = min(x + size, self.camera_image.width)
+            y2 = min(y + size, self.camera_image.height)
 
             try:
                 image = self.cv_bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
