@@ -3,7 +3,7 @@ PKG = 'embodied_attention'
 import roslib; roslib.load_manifest(PKG)
 
 import rospy
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import PointStamped
 import geometry_msgs
 from std_msgs.msg import Float64, String
 import std_msgs
@@ -34,7 +34,7 @@ class HeadManager():
         self.roi_pub = rospy.Publisher("/roi", Image, queue_size=1)
         self.label_pub = rospy.Publisher("/label", String, queue_size=1)
         self.probe_pub = rospy.Publisher("/probe_results", String, queue_size=1)
-        self.point_pub = rospy.Publisher("/saccade_point", Point, queue_size=1)
+        self.point_pub = rospy.Publisher("/saccade_point", PointStamped, queue_size=1)
         self.tilt_pub = rospy.Publisher("/tilt", Float64, queue_size=1)
         self.pan_pub = rospy.Publisher("/pan", Float64, queue_size=1)
         self.shift_pub = rospy.Publisher("/shift", std_msgs.msg.Empty, queue_size=1)
@@ -117,7 +117,12 @@ class HeadManager():
             self.camera_model.fromCameraInfo(self.camera_info_left)
             point = self.camera_model.projectPixelTo3dRay((x, y))
 
-            self.point_pub.publish(Point(point[0] + self.pan_head + self.pan_eye, point[1] + self.tilt_head + self.tilt_eye, point[2]))
+            point_s = PointStamped()
+            point_s.header.stamp = rospy.Time.now()
+            point_s.point.x = point[0] + self.pan_head + self.pan_eye
+            point_s.point.y = point[1] + self.tilt_head + self.tilt_eye
+            point_s.point.z = point[2]
+            self.point_pub.publish(point_s)
 
             point = (point[2], point[0], -point[1])
 
