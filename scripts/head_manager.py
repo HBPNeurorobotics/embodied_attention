@@ -52,7 +52,6 @@ class HeadManager():
         self.camera_image = None
         self.camera_info_left = None
         self.camera_model = PinholeCameraModel()
-        self.link_states = None
 
         self.tilt_eye = 0.
         self.pan_eye = 0.
@@ -78,7 +77,6 @@ class HeadManager():
         camera_sub = rospy.Subscriber("/hollie/camera/left/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         camera_info_left_sub = rospy.Subscriber("/hollie/camera/left/camera_info", CameraInfo, self.camera_info_left_callback, queue_size=1, buff_size=2**24)
         joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback, queue_size=1, buff_size=2**24)
-        link_state_sub = rospy.Subscriber("/gazebo/link_states", LinkStates, self.link_state_callback, queue_size=1, buff_size=2**24)
 
     def saccade(self, saccade):
         if self.camera_image is None:
@@ -263,9 +261,6 @@ class HeadManager():
         self.tilt_eye = joint_state.position[joint_state.name.index("hollie_eyes_tilt_joint")]
         self.pan_head = -joint_state.position[joint_state.name.index("hollie_neck_yaw_joint")]
         self.tilt_head = joint_state.position[joint_state.name.index("hollie_neck_pitch_joint")]
-
-    def link_state_callback(self, link_states):
-        self.link_states = link_states
 
     # TODO: rework, adapt to global pan/tilt values
     def look(self, label):
