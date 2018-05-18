@@ -13,9 +13,9 @@ import os
 class SaliencyNode():
     def __init__(self):
         tensorflow_path = rospy.get_param("tensorflow_path", os.path.expanduser('~') + "/.opt/tensorflow_venv/lib/python2.7/site-packages")
-        model_file = rospy.get_param('~saliency_file', '/tmp/model.ckpt')
-        network_input_height = float(rospy.get_param('~network_input_height', '192'))
-        network_input_width = float(rospy.get_param('~network_input_width', '256'))
+        model_file = rospy.get_param('saliency_file', '/tmp/model.ckpt')
+        network_input_height = float(rospy.get_param('network_input_height', '192'))
+        network_input_width = float(rospy.get_param('network_input_width', '256'))
         clip = bool(rospy.get_param('~clip', 'False'))
 
         self.saliency = Saliency(tensorflow_path, model_file, network_input_height, network_input_width, clip)
