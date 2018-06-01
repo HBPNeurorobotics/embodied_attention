@@ -50,10 +50,11 @@ def pad_image(img, new_h, new_w):
     return padded_img
 
 class Saliency():
-    def __init__(self, tensorflow_path=os.path.expanduser('~') + '/.opt/tensorflow_venv/lib/python2.7/site-packages', model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256, clip=False):
+    def __init__(self, tensorflow_path=None, model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256, clip=False):
 
-        import site
-        site.addsitedir(tensorflow_path)
+        if (tensorflow_path):
+            import site
+            site.addsitedir(tensorflow_path)
         import tensorflow as tf
         from tensorflow.python.client import device_lib
         self.tf = tf
