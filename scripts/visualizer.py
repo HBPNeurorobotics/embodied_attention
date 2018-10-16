@@ -48,7 +48,7 @@ class Visualizer():
 
         self.cv_bridge = CvBridge()
 
-        image_sub = rospy.Subscriber("/hollie/camera/left/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
+        image_sub = rospy.Subscriber("/camera/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         saliency_map_image_sub = rospy.Subscriber("/saliency_map_image", Image, self.saliency_map_image_callback, queue_size=1, buff_size=2**24)
 
         target_sub = rospy.Subscriber("/saccade_target", Point, self.target_callback, queue_size=1, buff_size=2**24)

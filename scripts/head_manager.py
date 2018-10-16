@@ -26,11 +26,11 @@ import time
 
 class HeadManager():
     def __init__(self):
-        self.tilt_eye_pub = rospy.Publisher("/hollie/eye_tilt_position_controller/command", Float64, queue_size=1)
-        self.pan_eye_left_pub = rospy.Publisher("/hollie/left_eye_pan_position_controller/command", Float64, queue_size=1)
-        self.pan_eye_right_pub = rospy.Publisher("/hollie/right_eye_pan_position_controller/command", Float64, queue_size=1)
-        self.tilt_head_pub = rospy.Publisher("/hollie/neck_pitch_position_controller/command", Float64, queue_size=1)
-        self.pan_head_pub = rospy.Publisher("/hollie/neck_yaw_position_controller/command", Float64, queue_size=1)
+        self.tilt_eye_pub = rospy.Publisher("/eye_tilt", Float64, queue_size=1)
+        self.pan_eye_left_pub = rospy.Publisher("/left_eye_pan", Float64, queue_size=1)
+        self.pan_eye_right_pub = rospy.Publisher("/right_eye_pan", Float64, queue_size=1)
+        self.tilt_head_pub = rospy.Publisher("/neck_pitch", Float64, queue_size=1)
+        self.pan_head_pub = rospy.Publisher("/neck_yaw", Float64, queue_size=1)
         self.roi_pub = rospy.Publisher("/roi", Image, queue_size=1)
         self.label_pub = rospy.Publisher("/label", String, queue_size=1)
         self.probe_pub = rospy.Publisher("/probe_results", String, queue_size=1)
@@ -74,8 +74,8 @@ class HeadManager():
 
         self.cv_bridge = CvBridge()
 
-        camera_sub = rospy.Subscriber("/hollie/camera/left/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
-        camera_info_left_sub = rospy.Subscriber("/hollie/camera/left/camera_info", CameraInfo, self.camera_info_left_callback, queue_size=1, buff_size=2**24)
+        camera_sub = rospy.Subscriber("/camera_left/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
+        camera_info_left_sub = rospy.Subscriber("/camera_left/camera_info", CameraInfo, self.camera_info_left_callback, queue_size=1, buff_size=2**24)
         joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback, queue_size=1, buff_size=2**24)
 
     def saccade(self, saccade):
@@ -257,10 +257,10 @@ class HeadManager():
         self.camera_info_right = camera_info_right
 
     def joint_state_callback(self, joint_state):
-        self.pan_eye = joint_state.position[joint_state.name.index("hollie_left_eye_pan_joint")]
-        self.tilt_eye = joint_state.position[joint_state.name.index("hollie_eyes_tilt_joint")]
-        self.pan_head = -joint_state.position[joint_state.name.index("hollie_neck_yaw_joint")]
-        self.tilt_head = joint_state.position[joint_state.name.index("hollie_neck_pitch_joint")]
+        self.pan_eye = joint_state.position[joint_state.name.index("left_eye_pan")]
+        self.tilt_eye = joint_state.position[joint_state.name.index("eye_tilt")]
+        self.pan_head = -joint_state.position[joint_state.name.index("neck_yaw")]
+        self.tilt_head = joint_state.position[joint_state.name.index("neck_pitch")]
 
     # TODO: rework, adapt to global pan/tilt values
     def look(self, label):

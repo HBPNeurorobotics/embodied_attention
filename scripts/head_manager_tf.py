@@ -28,11 +28,11 @@ import time
 
 class HeadManager():
     def __init__(self):
-        self.tilt_eye_pub = rospy.Publisher("/hollie/eye_tilt_position_controller/command", Float64, queue_size=1)
-        self.pan_eye_left_pub = rospy.Publisher("/hollie/left_eye_pan_position_controller/command", Float64, queue_size=1)
-        self.pan_eye_right_pub = rospy.Publisher("/hollie/right_eye_pan_position_controller/command", Float64, queue_size=1)
-        self.tilt_head_pub = rospy.Publisher("/hollie/neck_pitch_position_controller/command", Float64, queue_size=1)
-        self.pan_head_pub = rospy.Publisher("/hollie/neck_yaw_position_controller/command", Float64, queue_size=1)
+        self.tilt_eye_pub = rospy.Publisher("/eye_tilt", Float64, queue_size=1)
+        self.pan_eye_left_pub = rospy.Publisher("/left_eye_pan", Float64, queue_size=1)
+        self.pan_eye_right_pub = rospy.Publisher("/right_eye_pan", Float64, queue_size=1)
+        self.tilt_head_pub = rospy.Publisher("/neck_pitch", Float64, queue_size=1)
+        self.pan_head_pub = rospy.Publisher("neck_yaw", Float64, queue_size=1)
         self.roi_pub = rospy.Publisher("/roi", Image, queue_size=1)
         self.label_pub = rospy.Publisher("/label", String, queue_size=1)
         self.probe_pub = rospy.Publisher("/probe_results", String, queue_size=1)
@@ -75,7 +75,7 @@ class HeadManager():
         self.move_eyes = rospy.get_param("~move_eyes", True)
         self.move_head = rospy.get_param("~move_head", True)
         self.shift = rospy.get_param("~shift", True)
-        self.min_disparity = rospy.get_param("/hollie/camera/stereo_image_proc/min_disparity", "-16")
+        self.min_disparity = rospy.get_param("/camera/stereo_image_proc/min_disparity", "-16")
         self.recognize = rospy.get_param("~recognize", True)
         self.probe = rospy.get_param("~probe", False)
 
@@ -86,10 +86,11 @@ class HeadManager():
         self.transform = None
         self.static_frame = "hollie_base_x_link"
 
-        camera_sub = rospy.Subscriber("/hollie/camera/left/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
-        camera_info_left_sub = rospy.Subscriber("/hollie/camera/left/camera_info", CameraInfo, self.camera_info_left_callback, queue_size=1, buff_size=2**24)
-        camera_info_right_sub = rospy.Subscriber("/hollie/camera/right/camera_info", CameraInfo, self.camera_info_right_callback, queue_size=1, buff_size=2**24)
-        disparity_sub = rospy.Subscriber("/hollie/camera/disparity", DisparityImage, self.disparity_callback, queue_size=1, buff_size=2**24)
+        camera_sub = rospy.Subscriber("/camera_left/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
+        camera_info_left_sub = rospy.Subscriber("/camera_left/camera_info", CameraInfo, self.camera_info_left_callback, queue_size=1, buff_size=2**24)
+        camera_info_right_sub = rospy.Subscriber("/camera_right/image
+_info", CameraInfo, self.camera_info_right_callback, queue_size=1, buff_size=2**24)
+        disparity_sub = rospy.Subscriber("/camera/disparity", DisparityImage, self.disparity_callback, queue_size=1, buff_size=2**24)
         joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback, queue_size=1, buff_size=2**24)
         link_state_sub = rospy.Subscriber("/gazebo/link_states", LinkStates, self.link_state_callback, queue_size=1, buff_size=2**24)
 
@@ -102,9 +103,6 @@ class HeadManager():
             return False
         elif self.camera_info_right is None:
             rospy.loginfo("Received saccade but camera_info_right is missing")
-            return False
-        elif self.disparity_image is None:
-            rospy.loginfo("Received saccade but disparity_image is missing")
             return False
         else:
 
@@ -141,12 +139,15 @@ class HeadManager():
             self.roi_pub.publish(roi)
 
             # get point in eye frame
-            disparity_image = self.cv_bridge.imgmsg_to_cv2(self.disparity_image.image)
-            disparity = disparity_image[y][x] - (self.min_disparity - 2)
-            print "disparity: %f" % disparity
-            self.camera_model.fromCameraInfo(self.camera_info_left, self.camera_info_right)
-            distance = self.camera_model.getZ(disparity)
-            point_eye = self.camera_model.projectPixelTo3d((x, y), disparity)
+            if self.disparity_image is None:
+                # disparity of 0 => point is at infinity
+                point_eye = self.camera_model.projectPixelTo3d((x, y), 0)
+            else:
+                disparity_image = self.cv_bridge.imgmsg_to_cv2(self.disparity_image.image)
+                disparity = disparity_image[y][x] - (self.min_disparity - 2)
+                self.camera_model.fromCameraInfo(self.camera_info_left, self.camera_info_right)
+                distance = self.camera_model.getZ(disparity)
+                point_eye = self.camera_model.projectPixelTo3d((x, y), disparity)
 
             point_eye = (point_eye[2], point_eye[0], -point_eye[1])
             print "point_eye: " + str(point_eye)
@@ -307,10 +308,10 @@ class HeadManager():
         self.disparity_image = disparity_image
 
     def joint_state_callback(self, joint_state):
-        self.pan_eye = joint_state.position[joint_state.name.index("hollie_left_eye_pan_joint")]
-        self.tilt_eye = joint_state.position[joint_state.name.index("hollie_eyes_tilt_joint")]
-        self.pan_head = joint_state.position[joint_state.name.index("hollie_neck_yaw_joint")]
-        self.tilt_head = joint_state.position[joint_state.name.index("hollie_neck_pitch_joint")]
+        self.pan_eye = joint_state.position[joint_state.name.index("left_eye_pan")]
+        self.tilt_eye = joint_state.position[joint_state.name.index("eye_tilt")]
+        self.pan_head = -joint_state.position[joint_state.name.index("neck_yaw")]
+        self.tilt_head = joint_state.position[joint_state.name.index("neck_pitch")]
 
     def link_state_callback(self, link_states):
         self.link_states = link_states
