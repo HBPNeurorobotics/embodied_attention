@@ -22,30 +22,30 @@ class Saccade:
         self.k       =      .0175  # passive decay rate (movement neurons)
         self.g       =      .33    # input threshold
         self.G       =      .2     # scaling factor for lateral inhibition
-        
+
         ## setup
         # dimensions and coordinate systems
-        self.Ns        = int(np.sqrt(self.N))  
+        self.Ns        = int(np.sqrt(self.N))
         n              = 1./(self.Ns*.5)
         r              = np.linspace(-1., 1., self.Ns)
         self.X, self.Y = np.meshgrid(r, r)
         self.X         = np.reshape(self.X, [self.N, ])
         self.Y         = np.reshape(self.Y, [self.N, ])
-        
-        # lateral weights 
+
+        # lateral weights
         self.W        = np.zeros([self.N, self.N])
         for i in range(self.N):
             self.W[:, i] = gauss(self.X[i], self.Y[i], self.X, self.Y, sig_lat)
             self.W[i, i] = 0.
-            
+
         self.tau = 20.
-        
+
         # (state) variables
         self.motor_neurons  = np.zeros(self.N) # movement neurons
         self.visual_neurons = np.zeros(self.N) # visual neurons
 
         self.last_winner = None
-    
+
     # numerical integration (simple Euler)
     def compute_saccade_target(self, saliency_map, dt):
         # noise propagation
