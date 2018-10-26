@@ -8,21 +8,24 @@ from scipy import misc
 def gauss(x, y, X, Y, sigma):
     return np.exp(-(np.power(x-X, 2)+np.power(y-Y, 2))/(2.*np.power(sigma ,2)))
 
-def f(x): return np.maximum(x, 0.)
+def positiv(x): return np.maximum(x, 0.)
 
 class Saccade:
-    def __init__(self):
-
+    def __init__(self, modulation_type='none', sig_mod=3., amp_mod=1.):
         ## parameters
         self.N       =  1600       # number of neurons per type (visual, movement)
         self.theta   =    11.      # decision threshold
-        sig_lat      =      .25    # width of Gaussian lateral inhibition
+        self.sig_lat      = .25    # width of Gaussian lateral inhibition
+        self.sig_rf      =  .25    # width of Gaussian receptive field
+        self.amp_rf      =  .02    # scaling factor for receptive field
+        self.sig_mod  =  sig_mod   # width of Gaussian modulation
+        self.amp_mod  =  amp_mod   # amplitude of Gaussian modulation
         self.sig_IoR =      .05    # width of Gaussian spread of inhibition of return
         self.sig_noise =    .2     # width of Gaussian noise
         self.k       =      .0175  # passive decay rate (movement neurons)
         self.g       =      .33    # input threshold
         self.G       =      .2     # scaling factor for lateral inhibition
-
+        self.modulation_type = modulation_type
         ## setup
         # dimensions and coordinate systems
         self.Ns        = int(np.sqrt(self.N))
@@ -34,11 +37,15 @@ class Saccade:
 
         # lateral weights
         self.W        = np.zeros([self.N, self.N])
+        self.receptive_fields = np.zeros([self.N, self.N])
+        self.modulation = np.ones([self.N, self.N])
         for i in range(self.N):
-            self.W[:, i] = gauss(self.X[i], self.Y[i], self.X, self.Y, sig_lat)
+            self.W[:, i] = gauss(self.X[i], self.Y[i], self.X, self.Y, self.sig_lat)
             self.W[i, i] = 0.
+            self.receptive_fields[:, i] = gauss(self.X[i], self.Y[i], self.X, self.Y, self.sig_rf)
 
         self.tau = 20.
+        self.tau_mod = 20.
 
         # (state) variables
         self.motor_neurons  = np.zeros(self.N) # movement neurons
@@ -47,7 +54,7 @@ class Saccade:
         self.last_winner = None
 
     # numerical integration (simple Euler)
-    def compute_saccade_target(self, saliency_map, dt):
+    def compute_saccade_target(self, saliency_map, dt=30.):
         # noise propagation
         self.dsig_v = np.sqrt(dt/self.tau)*self.sig_noise # input (visual neuron) noise
         self.dsig_m = np.sqrt(dt)*self.sig_noise          # movement neuron noise
@@ -56,8 +63,10 @@ class Saccade:
         sal = np.reshape(sal, [self.N, ])/235.*0.55+.2
 
         # update
-        self.visual_neurons += dt*(-self.visual_neurons + sal)/self.tau + self.dsig_v*np.random.randn(self.N)
-        self.motor_neurons += dt*(-self.k*self.motor_neurons + f(self.visual_neurons - self.g) - self.G*np.dot(self.W, f(self.motor_neurons))) + self.dsig_m*np.random.randn(self.N)
+        # syn_input = sal
+        syn_input = self.amp_rf*np.dot(np.multiply(self.receptive_fields, self.modulation), sal)
+        self.visual_neurons += dt*(-self.visual_neurons + syn_input)/self.tau + self.dsig_v*np.random.randn(self.N)
+        self.motor_neurons += dt*(-self.k*self.motor_neurons + positiv(self.visual_neurons - self.g) - self.G*np.dot(self.W, positiv(self.motor_neurons))) + self.dsig_m*np.random.randn(self.N)
 
         ID = np.argmax(self.motor_neurons)
 
@@ -82,8 +91,18 @@ class Saccade:
             self.motor_neurons[ID] = 0.
 
             # inhibition of return
-            self.visual_neurons = self.visual_neurons - gauss(self.X[ID], self.Y[ID], self.X, self.Y, self.sig_IoR)
+            self.visual_neurons -= gauss(self.X[ID], self.Y[ID], self.X, self.Y, self.sig_IoR)
 
+            # receptive field modulation
+            if self.modulation_type == 'shift':
+                for i in range(self.N):
+                    self.modulation[:, i] = self.amp_mod * gauss(X[ID]+X[i],Y[ID]+Y[i],self.sig_mod,X,Y)
+            elif self.modulation_type == 'compression':
+                for i in range(self.N):
+                    self.modulation[:, i] = self.amp_mod * gauss(X[ID],Y[ID],self.sig_mod,X,Y)
+
+        # fade the modulation towards identity
+        self.modulation += dt*(-self.modulation  + np.ones([self.N, self.N]))/self.tau_mod
         return (target, is_actual_target, np.reshape(self.visual_neurons, [self.Ns, self.Ns]), np.reshape(self.motor_neurons, [self.Ns, self.Ns]))
 
     def shift(self):
