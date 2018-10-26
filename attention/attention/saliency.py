@@ -79,10 +79,10 @@ class Saliency():
         ### compute saliency map
         stim = rescale_image(frame, self.network_input_height, self.network_input_width)
         stim = pad_image(stim, self.network_input_height, self.network_input_width)
-    
+
         stim = stim[None, :, :, :]
         stim = stim.astype(np.float32)
-    
+
         # subtract mean channel activation
         stim[:, :, :, 0] -= 99.50135
         stim[:, :, :, 1] -= 109.85075
