@@ -72,7 +72,7 @@ model_file = "path/to/model.cpkt" # the TensorFlow model files you downloaded fr
 saliency = Saliency(model_file=model_file)
 image = np.random.randn(200,200,3)
 saliency_map = saliency.compute_saliency_map(image)
-plt.imsave(saliency_map, '/tmp/saliency.png')
+plt.imsave('/tmp/saliency.png', saliency_map)
 
 # demonstration of saccade model
 saccade = Saccade()
