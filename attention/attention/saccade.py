@@ -64,10 +64,9 @@ class Saccade:
         sal = np.reshape(sal, [self.N, ])/235.*0.55+.2
 
         # update
-        # syn_input = sal
-        syn_input = np.dot(np.multiply(self.amp_rf * self.receptive_fields, self.modulation), sal)
-        self.visual_neurons += dt*(-self.visual_neurons + syn_input)/self.tau + self.dsig_v*np.random.randn(self.N)
-        self.motor_neurons += dt*(-self.k*self.motor_neurons + positiv(self.visual_neurons - self.g) - self.G*np.dot(self.W, positiv(self.motor_neurons))) + self.dsig_m*np.random.randn(self.N)
+        self.visual_neurons += dt*(-self.visual_neurons + sal)/self.tau + self.dsig_v*np.random.randn(self.N)
+        vis_input = np.dot(np.multiply(self.amp_rf * self.receptive_fields, self.modulation), self.visual_neurons)
+        self.motor_neurons += dt*(-self.k*self.motor_neurons + positiv(vis_input - self.g) - self.G*np.dot(self.W, positiv(self.motor_neurons))) + self.dsig_m*np.random.randn(self.N)
 
         ID = np.argmax(self.motor_neurons)
 
