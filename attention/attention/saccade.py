@@ -11,17 +11,19 @@ def gauss(x, y, X, Y, sigma):
 def positiv(x): return np.maximum(x, 0.)
 
 class Saccade:
-    def __init__(self, modulation_type='none', sig_mod=3., amp_mod=1.):
+    def __init__(self, modulation_type='none',
+                 amp_rf=0.02, sig_rf=0.2,
+                 amp_mod=1., sig_mod=3.):
         ## parameters
         self.N       =  1600       # number of neurons per type (visual, movement)
         self.theta   =    11.      # decision threshold
         self.sig_lat      = .25    # width of Gaussian lateral inhibition
-        self.sig_rf      =  .25    # width of Gaussian receptive field
-        self.amp_rf      =  .02    # scaling factor for receptive field
+        self.sig_rf      =  sig_rf # width of Gaussian receptive field
+        self.amp_rf      =  amp_rf # scaling factor for receptive field
         self.sig_mod  =  sig_mod   # width of Gaussian modulation
         self.amp_mod  =  amp_mod   # amplitude of Gaussian modulation
         self.sig_IoR =      .05    # width of Gaussian spread of inhibition of return
-        self.sig_noise =    .2     # width of Gaussian noise
+        self.sig_noise =    .05    # strength of noise
         self.k       =      .0175  # passive decay rate (movement neurons)
         self.g       =      .33    # input threshold
         self.G       =      .2     # scaling factor for lateral inhibition
@@ -48,14 +50,13 @@ class Saccade:
         self.tau_mod = 20.
 
         # (state) variables
-        self.motor_neurons  = np.zeros(self.N) # movement neurons
-        self.visual_neurons = np.zeros(self.N) # visual neurons
+        self.visual_neurons = self.sig_noise*np.random.randn(self.N) # visual neurons
+        self.motor_neurons  = self.sig_noise*np.random.randn(self.N) # movement neurons
 
         self.last_winner = None
 
     # numerical integration (simple Euler)
     def compute_saccade_target(self, saliency_map, dt=30.):
-        # noise propagation
         self.dsig_v = np.sqrt(dt/self.tau)*self.sig_noise # input (visual neuron) noise
         self.dsig_m = np.sqrt(dt)*self.sig_noise          # movement neuron noise
 
@@ -64,7 +65,7 @@ class Saccade:
 
         # update
         # syn_input = sal
-        syn_input = self.amp_rf*np.dot(np.multiply(self.receptive_fields, self.modulation), sal)
+        syn_input = np.dot(np.multiply(self.amp_rf * self.receptive_fields, self.modulation), sal)
         self.visual_neurons += dt*(-self.visual_neurons + syn_input)/self.tau + self.dsig_v*np.random.randn(self.N)
         self.motor_neurons += dt*(-self.k*self.motor_neurons + positiv(self.visual_neurons - self.g) - self.G*np.dot(self.W, positiv(self.motor_neurons))) + self.dsig_m*np.random.randn(self.N)
 
@@ -75,15 +76,13 @@ class Saccade:
         x = np.mod(ID, self.Ns) + 0.5
         y_scaled = int(float(len(saliency_map))/self.Ns * y)
         x_scaled = int(float(len(saliency_map[0]))/self.Ns * x)
-        print("Winning neuron: x: %3d, y: %3d, value: %f" % (x_scaled, y_scaled, self.motor_neurons[ID]))
+        # print("Winning neuron: x: %3d, y: %3d, value: %f" % (x_scaled, y_scaled, self.motor_neurons[ID]))
 
         target = (x_scaled, y_scaled, self.motor_neurons[ID])
         is_actual_target = False
 
         # check if target
         if (self.motor_neurons[ID] >= self.theta):
-            print("\tis actual target")
-
             is_actual_target = True
             self.last_winner = ID
 
@@ -103,7 +102,7 @@ class Saccade:
 
         # fade the modulation towards identity
         self.modulation += dt*(-self.modulation  + np.ones([self.N, self.N]))/self.tau_mod
-        return (target, is_actual_target, np.reshape(self.visual_neurons, [self.Ns, self.Ns]), np.reshape(self.motor_neurons, [self.Ns, self.Ns]))
+        return (target, is_actual_target)
 
     def shift(self):
         # shift activity

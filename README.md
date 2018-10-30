@@ -19,19 +19,19 @@ If you use the Neurorobotics, this module installs itself with the install scrip
 
 Otherwise, there are multiple ways you can use the models provided in this package.
 In any way, you will need the files defining the TensorFlow model for the saliency network.
-You can download the model on HBP SP10 owncloud:
+You can download the model on HBP SP10 nextcloud:
 
 ```bash
 download_saliency () {
     if [ $1 ]; then
-        curl -k -o model.ckpt.meta "https://neurorobotics-files.net/owncloud/index.php/s/hdjl7TjzSUqF1Ww/download"
-        curl -k -o model.ckpt.index "https://neurorobotics-files.net/owncloud/index.php/s/DCPB80foqkteuC4/download"
-        curl -k -o model.ckpt.data-00000-of-00001 "https://neurorobotics-files.net/owncloud/index.php/s/bkpmmvrVkeELapr/download"
+        curl -k -o model.ckpt.meta "https://neurorobotics-files.net/index.php/s/SNsfXBjm3bpNoMB/download"
+        curl -k -o model.ckpt.index "https://neurorobotics-files.net/index.php/s/tZ64sd9diA2X8QZdownload"
+        curl -k -o model.ckpt.data-00000-of-00001 "https://neurorobotics-files.net/index.php/s/nHtn8Q9ezxLtP3B/download"
         echo "gpu" > config
     else
-        curl -k -o model.ckpt.meta "https://neurorobotics-files.net/owncloud/index.php/s/TNpWFSX8xLvfbYD/download"
-        curl -k -o model.ckpt.index "https://neurorobotics-files.net/owncloud/index.php/s/sDCFUGTrzJyhDA5/download"
-        curl -k -o model.ckpt.data-00000-of-00001 "https://neurorobotics-files.net/owncloud/index.php/s/Scti429S7D11tMv/download"
+        curl -k -o model.ckpt.meta "https://neurorobotics-files.net/index.php/s/B3mB7aRKpy6EEE2/download"
+        curl -k -o model.ckpt.index "https://neurorobotics-files.net/index.php/s/zXW99pqBmKN2TCf/download"
+        curl -k -o model.ckpt.data-00000-of-00001 "https://neurorobotics-files.net/index.php/s/X5g6ajtSNefYpnH/download"
         echo "cpu" > config
     fi
 }
@@ -59,22 +59,4 @@ cd attention
 pip install -e .
 ```
 
-Then in your python script:
-
-```python
-from attention import Saliency
-from attention import Saccade
-import numpy as np
-import matplotlib.pyplot as plt
-
-# demonstration of saliency model
-model_file = "path/to/model.cpkt" # the TensorFlow model files you downloaded from HBP SP10 owncloud
-saliency = Saliency(model_file=model_file)
-image = np.random.randn(200,200,3)
-saliency_map = saliency.compute_saliency_map(image)
-plt.imsave('/tmp/saliency.png', saliency_map)
-
-# demonstration of saccade model
-saccade = Saccade()
-(target, is_actual_target, visual_neurons, motor_neurons) = saccade.compute_saccade_target(saliency_map, dt=1000)
-```
+Have a look to [attention/examples/test_saliency.py](attention/examples/test_saliency.py) for an example script on how to use the saliency and saccade modules.
