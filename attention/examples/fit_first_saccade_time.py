@@ -43,14 +43,27 @@ except OSError as e:
 def plot_first_spike_rf(rf_amps, rf_stds, first_saccades, out):
     x, y = np.meshgrid(rf_amps, rf_stds)
     human_reference=0.317 * 1000.
+
+    fastest = np.min(first_saccades)
     first_saccades = first_saccades - human_reference
     time_limit = np.max(first_saccades)
+    min_limit = np.min(first_saccades)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    cax = ax.contourf(x, y, first_saccades, cmap=plt.get_cmap('seismic'))
-    cbar = fig.colorbar(cax, ticks=[0])
-    cbar.ax.set_yticklabels(['human reference'])
+    cax = ax.contourf(x, y, first_saccades, 1000, cmap=plt.get_cmap('seismic'),
+                      vmin=-time_limit, vmax=time_limit
+    )
+
+    # ticks = np.arange(100, 700, 100)
+    ticks = np.array([100, 200, 400, 500, 600, 700])
+    human_idx = np.searchsorted(ticks, human_reference)
+    ticks = np.insert(ticks, human_idx, human_reference)
+    print(ticks)
+    ticks_labels = ticks.astype(str)
+
+    cbar = fig.colorbar(cax, ticks=ticks - human_reference)
+    cbar.ax.set_yticklabels(ticks_labels)
     ax.set_xlabel('RF strength')
     ax.set_ylabel('RF width')
     plt.savefig(path.join(out, 'first_saccades.png'), dpi=150)
