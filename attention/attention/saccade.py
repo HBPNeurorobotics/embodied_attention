@@ -12,7 +12,7 @@ def positiv(x): return np.maximum(x, 0.)
 
 class Saccade:
     def __init__(self, modulation_type='none',
-                 amp_rf=0.02, sig_rf=0.2,
+                 amp_rf=0.13, sig_rf=0.02,
                  amp_mod=1., sig_mod=3.):
         ## parameters
         self.N       =  1600       # number of neurons per type (visual, movement)
