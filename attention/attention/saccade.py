@@ -12,21 +12,23 @@ def positiv(x): return np.maximum(x, 0.)
 
 class Saccade:
     def __init__(self, modulation_type='none',
-                 amp_rf=0.13, sig_rf=0.02,
-                 amp_mod=1., sig_mod=3.):
-        ## parameters
+                 amp_rf=0.008, sig_rf=0.267,
+                 amp_mod=1., sig_mod=0.267):
+        ## parameters taken from:
+        ## Purcell et al. (2012). From Salience to Saccades: Multiple-Alternative Gated Stochastic Accumulator Model of Visual Search. Journal of Neuroscience, 32(10)
         self.N       =  1600       # number of neurons per type (visual, movement)
-        self.theta   =    11.      # decision threshold
-        self.sig_lat      = .25    # width of Gaussian lateral inhibition
+        self.theta   =    6.   # decision threshold
+        self.sig_lat      = .1     # width of Gaussian lateral inhibition
         self.sig_rf      =  sig_rf # width of Gaussian receptive field
         self.amp_rf      =  amp_rf # scaling factor for receptive field
         self.sig_mod  =  sig_mod   # width of Gaussian modulation
         self.amp_mod  =  amp_mod   # amplitude of Gaussian modulation
-        self.sig_IoR =      .05    # width of Gaussian spread of inhibition of return
-        self.sig_noise =    .05    # strength of noise
-        self.k       =      .0175  # passive decay rate (movement neurons)
+        self.sig_IoR =      .1    # width of Gaussian spread of inhibition of return
+        self.amp_IoR =      1.5     # strength of inhibition of return
+        self.amp_noise =    .09    # strength of noise
+        self.k       =      .017   # passive decay rate (movement neurons)
         self.g       =      .33    # input threshold
-        self.G       =      .2     # scaling factor for lateral inhibition
+        self.G       =      .001    # scaling factor for lateral inhibition
         self.modulation_type = modulation_type
         ## setup
         # dimensions and coordinate systems
@@ -40,32 +42,34 @@ class Saccade:
         # lateral weights
         self.W        = np.zeros([self.N, self.N])
         self.receptive_fields = np.zeros([self.N, self.N])
+        self.original_receptive_fields = np.zeros([self.N, self.N])
         self.modulation = np.ones([self.N, self.N])
         for i in range(self.N):
             self.W[:, i] = gauss(self.X[i], self.Y[i], self.X, self.Y, self.sig_lat)
             self.W[i, i] = 0.
             self.receptive_fields[:, i] = gauss(self.X[i], self.Y[i], self.X, self.Y, self.sig_rf)
+            self.original_receptive_fields[:, i] = self.receptive_fields[:, i].copy()
 
-        self.tau = 20.
-        self.tau_mod = 20.
+        self.tau = 50.
+        self.tau_mod = 50.
 
         # (state) variables
-        self.visual_neurons = self.sig_noise*np.random.randn(self.N) # visual neurons
-        self.motor_neurons  = self.sig_noise*np.random.randn(self.N) # movement neurons
+        self.visual_neurons = self.amp_noise*np.random.randn(self.N) # visual neurons
+        self.motor_neurons  = self.amp_noise*np.random.randn(self.N) # movement neurons
 
         self.last_winner = None
 
     # numerical integration (simple Euler)
     def compute_saccade_target(self, saliency_map, dt=30.):
-        self.dsig_v = np.sqrt(dt/self.tau)*self.sig_noise # input (visual neuron) noise
-        self.dsig_m = np.sqrt(dt)*self.sig_noise          # movement neuron noise
+        self.dsig_v = np.sqrt(dt/self.tau)*self.amp_noise # input (visual neuron) noise
+        self.dsig_m = np.sqrt(dt)*self.amp_noise          # movement neuron noise
 
         sal = misc.imresize(saliency_map, [self.Ns, self.Ns])
         sal = np.reshape(sal, [self.N, ])/235.*0.55+.2
 
         # update
         self.visual_neurons += dt*(-self.visual_neurons + sal)/self.tau + self.dsig_v*np.random.randn(self.N)
-        vis_input = np.dot(np.multiply(self.amp_rf * self.receptive_fields, self.modulation), self.visual_neurons)
+        vis_input = self.amp_rf * np.dot(np.multiply(self.receptive_fields, self.modulation), self.visual_neurons)
         self.motor_neurons += dt*(-self.k*self.motor_neurons + positiv(vis_input - self.g) - self.G*np.dot(self.W, positiv(self.motor_neurons))) + self.dsig_m*np.random.randn(self.N)
 
         ID = np.argmax(self.motor_neurons)
@@ -89,18 +93,19 @@ class Saccade:
             self.motor_neurons[ID] = 0.
 
             # inhibition of return
-            self.visual_neurons -= gauss(self.X[ID], self.Y[ID], self.X, self.Y, self.sig_IoR)
+            self.visual_neurons -= self.amp_IoR * gauss(self.X[ID], self.Y[ID], self.X, self.Y, self.sig_IoR)
 
             # receptive field modulation
             if self.modulation_type == 'shift':
                 for i in range(self.N):
-                    self.modulation[:, i] = self.amp_mod * gauss(X[ID]+X[i],Y[ID]+Y[i],self.sig_mod,X,Y)
+                    self.modulation[:, i] = self.amp_mod * gauss(self.X[ID]+self.X[i],self.Y[ID]+self.Y[i],self.X,self.Y, self.sig_mod)
             elif self.modulation_type == 'compression':
                 for i in range(self.N):
-                    self.modulation[:, i] = self.amp_mod * gauss(X[ID],Y[ID],self.sig_mod,X,Y)
+                    self.modulation[:, i] = self.amp_mod * gauss(self.X[ID],self.Y[ID],self.X,self.Y, self.sig_mod)
 
-        # fade the modulation towards identity
+        # fade the modulation towards np.ones()
         self.modulation += dt*(-self.modulation  + np.ones([self.N, self.N]))/self.tau_mod
+
         return (target, is_actual_target)
 
     def shift(self):
