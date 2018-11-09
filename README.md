@@ -59,4 +59,4 @@ cd attention
 pip install -e .
 ```
 
-Have a look to [attention/examples/test_saliency.py](attention/examples/test_saliency.py) for an example script on how to use the saliency and saccade modules.
+Have a look to [attention/examples/saccade_static_image.py](attention/examples/saccade_static_image.py) for an example script on how to use the saliency and saccade modules.

@@ -33,7 +33,7 @@ plt.imsave(path.join(args.out, 'saliency.png'), saliency_map, cmap=plt.get_cmap(
 # demonstration of saccade model
 saccade = Saccade()
 ims = []
-dt = 1
+dt = 5
 simulation_time = 1000
 fig, (ax1, ax2) = plt.subplots(1, 2)
 ax1.set_title('visual neurons')
