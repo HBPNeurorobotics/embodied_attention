@@ -23,9 +23,9 @@ parser.add_argument('--n-amp', type=int, default=10,
                     help='number of amplitudes to try')
 parser.add_argument('--n-std', type=int, default=10,
                     help='number of standard deviations to try')
-parser.add_argument('--min-amp', type=float, default=0.003,
+parser.add_argument('--min-amp', type=float, default=0.005,
                     help='minimum amplitude of the gaussian receptive fields')
-parser.add_argument('--max-amp', type=float, default=0.03,
+parser.add_argument('--max-amp', type=float, default=0.011,
                     help='maximum amplitude of the gaussian receptive fields')
 parser.add_argument('--min-std', type=float, default=0.1,
                     help='minimum standard deviation of the gaussian receptive fields')
