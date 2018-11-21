@@ -11,9 +11,7 @@ def gauss(x, y, X, Y, sigma):
 def positiv(x): return np.maximum(x, 0.)
 
 class Saccade:
-    def __init__(self, modulation_type='none',
-                 **kwargs
-    ):
+    def __init__(self, **kwargs):
         ## parameters taken from:
         ## Purcell et al. (2012). From Salience to Saccades: Multiple-Alternative Gated Stochastic Accumulator Model of Visual Search. Journal of Neuroscience, 32(10)
         self.N       =  1600       # number of neurons per type (visual, movement)
@@ -31,11 +29,14 @@ class Saccade:
         self.g       =      .33    # input threshold
         self.tau = 50.
         self.tau_mod = 50.
+        self.modulation_type = 'none'
+
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+            else:
+                print("Saccade does not have property {}. Can not bet set to value {}.".format(key, value))
 
-        self.modulation_type = modulation_type
         ## setup
         # dimensions and coordinate systems
         self.Ns        = int(np.sqrt(self.N))

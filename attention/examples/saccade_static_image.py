@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from scipy import misc
 import argparse
 from attention import Saliency
@@ -55,7 +56,46 @@ def draw_rf(ax, rf):
               interpolation='bilinear',
               vmin=0, vmax=1.)
 
-saccade = Saccade(modulation_type=args.rf_modulation_type)
+# ordered list of params to optimize
+saccade_params = OrderedDict([
+    ('sig_lat', .1),
+    ('sig_rf', 0.267),
+    ('sig_IoR', .1),
+    ('amp_lat', .001),
+    ('amp_rf', 0.008),
+    ('amp_IoR', 1.5),
+    ('amp_noise', .09),
+    ('k', .017),
+    ('g', .33),
+    ('theta', 6.),
+    ('tau', 50.),
+    ('modulation_type', args.rf_modulation_type)
+])
+
+
+optimize_params = [
+    'sig_lat',
+    'sig_rf',
+    'sig_IoR',
+    'amp_lat',
+    'amp_rf',
+    'amp_IoR',
+    'amp_noise',
+    'k',
+    'g',
+    'theta',
+    'tau'
+]
+cmaes_best = [0.8996137430958839, 0.860201625718653, 1.7853573877108984, 1.0244696960538984, 0.9578599203733553, 1.1151009694666132, 1.0760013062048839, 1.492655871657021, 0.5441115793074502, 0.7654726571988658, 0.7585606348392527]
+
+# convert the cmaes params to the full state x by inserting static params
+def x_to_params(param_scaling):
+    params = saccade_params.copy()
+    for i, p in enumerate(optimize_params):
+        params[p] *= param_scaling[i]
+    return params
+
+saccade = Saccade(**x_to_params(cmaes_best))
 ims = []
 dt = 5
 simulation_time = 1000

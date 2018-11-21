@@ -14,19 +14,16 @@ from collections import OrderedDict
 from tqdm import tqdm
 import datetime
 import pickle
+from skimage.draw import circle
 
 parser = argparse.ArgumentParser(description='Test saliency model')
 parser.add_argument('--model', type=str, required=True,
                     help='path to the model.ckpt file')
-parser.add_argument('--fixations', type=str, required=True,
-                    help='path to the SALICON fixations')
-parser.add_argument('--images', type=str, required=True,
-                    help='path to the SALICON images')
-parser.add_argument('--out', type=str, default='/tmp/salicon',
+parser.add_argument('--image', type=str, required=True,
+                    help='path to the input image')
+parser.add_argument('--out', type=str, default='/tmp/fit_saccade_targets',
                     help='path to output folder')
-parser.add_argument('--n-train', type=int, default=10,
-                    help='number of SALICON image used to compute the fitness')
-parser.add_argument('--n-iter', type=int, default=50,
+parser.add_argument('--n-iter', type=int, default=200,
                     help='number of CMAES iterations')
 parser.add_argument('--seed', type=int, default=10,
                     help='random seed')
@@ -40,14 +37,7 @@ except OSError as e:
 
 model_file = args.model
 saliency = Saliency(model_file=model_file)
-fixation = sio.loadmat(args.fixations)
-all_user_fixations = [ len(fixation['gaze'][i][0][2]) for i in range(len(fixation['gaze'])) ]
-time_limit = fixation["gaze"][0][0][1][-1][0]
-gt_mean_rate = np.mean(all_user_fixations) * 1000. / time_limit
-path_to_image = os.path.join(args.images, fixation['image'][0] + '.jpg')
-print("Ground truth image {} has mean saccade rate: {}, std: {} ({} participants)"
-      .format(path_to_image, gt_mean_rate, np.std(all_user_fixations), len(fixation['gaze'])))
-image = misc.imread(path_to_image)
+image = misc.imread(args.image)
 saliency_map = saliency.compute_saliency_map(image)
 dt = 5.
 
@@ -96,16 +86,21 @@ def simulate(sol, n_it, i):
     np.random.seed(args.seed)
     saccade = Saccade(**params)
     time = 0
-    all_targets = []
     all_times = []
+    time_limit = 1000
+    score_img = np.zeros_like(saliency_map)
+    radius_rf = 5
     while time < time_limit:
         (target, is_actual_target) = saccade.compute_saccade_target(saliency_map, dt=dt)
         if is_actual_target:
-            all_targets.append(target)
+            rr, cc = circle(target[1], target[0], 5, shape=score_img.shape)
+            score_img[rr, cc] = saliency_map[rr, cc]
             all_times.append(time)
         time += dt
-    rate = len(all_targets) * 1000. / time_limit
-    error = gt_mean_rate - rate
+    rate = len(all_times) * 1000. / time_limit
+    ref_rate = 3
+    # we want score to be big with few saccades
+    error = - score_img.sum() + np.exp(rate *0.5 - ref_rate)
     print("Solution {} has rate: {}. Error: {}".format(params, rate, error))
     return error
 
@@ -123,11 +118,12 @@ bounds = [
     bound_factors[1] * np.ones(len(optimize_params))
 ]
 n_iter = args.n_iter
-popsize = np.floor(len(bounds[0]) * 2. / 3.)
+popsize = np.floor(len(optimize_params) * 2. / 3.)
 
 with open(os.path.join(args.out, 'initial.pkl'), 'w') as f:
     pickle.dump({
         'initial_dyn_params': initial_dyn_params,
+        'saccade_params': saccade_params,
         'optimize_params': optimize_params,
         'sigma0': sigma0,
         'bounds': bound_factors,
@@ -142,7 +138,6 @@ es = cma.CMAEvolutionStrategy(x0=startmean,
 es.logger.name_prefix = os.path.join(args.out, "outcmaes")
 
 n_it = 0
-
 
 while not es.stop():
     solutions = es.ask()
