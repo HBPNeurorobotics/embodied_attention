@@ -37,6 +37,8 @@ class Saccade:
             else:
                 print("Saccade does not have property {}. Can not bet set to value {}.".format(key, value))
 
+        assert(self.modulation_type in ['none', 'shift', 'compression'])
+
         ## setup
         # dimensions and coordinate systems
         self.Ns        = int(np.sqrt(self.N))
@@ -107,8 +109,10 @@ class Saccade:
                 for i in range(self.N):
                     self.modulation[:, i] = self.amp_mod * gauss(self.X[ID],self.Y[ID],self.X,self.Y, self.sig_mod)
 
-        # fade the modulation towards np.ones()
-        self.modulation += dt*(-self.modulation  + np.ones([self.N, self.N]))/self.tau_mod
+
+        if self.modulation_type is not 'none' and not is_actual_target:
+            # fade the modulation towards the multiplicative identity (matrix of ones)
+            self.modulation += dt*(-self.modulation  + np.ones([self.N, self.N]))/self.tau_mod
 
         return (target, is_actual_target)
 

@@ -51,10 +51,11 @@ def plot_targets(all_targets, all_times, saliency_map, out):
     plt.savefig(path.join(out, 'targets.png'), dpi=150)
 
 def draw_rf(ax, rf):
-    return ax.imshow(np.max(rf, axis=0),
-              aspect='equal', cmap=plt.get_cmap('Reds'),
-              interpolation='bilinear',
-              vmin=0, vmax=1.)
+    return ax.imshow(np.max(rf, axis=2),
+                     aspect='equal', cmap=plt.get_cmap('Reds'),
+                     interpolation='none',
+                     vmin=0, vmax=1.,
+                     animated=True)
 
 # ordered list of params to optimize
 saccade_params = OrderedDict([
@@ -95,6 +96,8 @@ def x_to_params(param_scaling):
     params = saccade_params.copy()
     for i, p in enumerate(optimize_params):
         params[p] *= param_scaling[i]
+    params['tau_mod'] = params['tau']
+    params['sig_mod'] = params['sig_rf']
     return params
 
 saccade = Saccade(**x_to_params(cmaes_best))
@@ -127,8 +130,10 @@ for k in range(simulation_time / dt):
         all_times.append(time)
     visual_neurons = saccade.visual_neurons.reshape(saccade.Ns, saccade.Ns).copy()
     motor_neurons = saccade.motor_neurons.reshape(saccade.Ns, saccade.Ns).copy()
-    receptive_fields = saccade.receptive_fields[rf_ids].reshape(-1, saccade.Ns, saccade.Ns)
-    modulation = saccade.modulation[rf_ids].reshape(-1, saccade.Ns, saccade.Ns)
+
+    receptive_fields = saccade.receptive_fields[:, rf_ids].reshape(saccade.Ns, saccade.Ns, -1).copy()
+    modulation = saccade.modulation[:, rf_ids].reshape(saccade.Ns, saccade.Ns, -1).copy()
+
     modulated_receptive_fields = np.multiply(receptive_fields, modulation)
     ims.append( [
         ax1.imshow(visual_neurons, animated=True, aspect='equal', cmap=plt.get_cmap('gray'), interpolation='none', vmin=neuron_min, vmax=neuron_max),
