@@ -58,9 +58,9 @@ class HeadManager():
         self.tilt_head = 0.
         self.pan_head = 0.
 
-        self.tilt_eye_upper_limit = 0.4869469
-        self.tilt_eye_lower_limit = -0.8220501
-        self.pan_eye_limit = 0.77754418
+        self.tilt_eye_limit = 0.942477796
+        self.pan_eye_limit = 0.942477796
+
         self.tilt_head_limit = math.pi/4
         self.pan_head_limit = math.pi/2
 
@@ -116,24 +116,25 @@ class HeadManager():
 
             # get point in eye frame
             self.camera_model.fromCameraInfo(self.camera_info_left)
-            point = self.camera_model.projectPixelTo3dRay((x, y))
+            eye_to_target = self.camera_model.projectPixelTo3dRay((x, y))
+            eye_to_target = eye_to_target / np.linalg.norm(eye_to_target)
+
+            print("eye_to_target: {}".format(eye_to_target))
 
             point_s = PointStamped()
             point_s.header.stamp = rospy.Time.now()
-            point_s.point.x = point[0] + self.pan_head + self.pan_eye
-            point_s.point.y = point[1] + self.tilt_head + self.tilt_eye
-            point_s.point.z = point[2]
+            point_s.point.x = eye_to_target[0] + self.pan_head + self.pan_eye
+            point_s.point.y = eye_to_target[1] + self.tilt_head + self.tilt_eye
+            point_s.point.z = eye_to_target[2]
             self.point_pub.publish(point_s)
 
-            point = (point[2], point[0], -point[1])
+            # point = (point[2], point[0], -point[1])
+            # pan = math.atan2(point[1], point[0])
+            # tilt = math.atan2(-point[2], math.sqrt(math.pow(point[0], 2) + math.pow(point[1], 2)))
 
-            print "self.tilt_eye: %f" % self.tilt_eye
-            print "self.pan_eye: %f" % self.pan_eye
-            print "self.tilt_head: %f" % self.tilt_head
-            print "self.pan_head: %f" % self.pan_head
-
-            pan = math.atan2(point[1], point[0])
-            tilt = math.atan2(-point[2], math.sqrt(math.pow(point[0], 2) + math.pow(point[1], 2)))
+            pan = - math.atan2(eye_to_target[0], eye_to_target[2])
+            tilt = - math.atan2(eye_to_target[1], eye_to_target[2])
+            print("(pan, tilt): ({}, {})".format(pan, tilt))
 
             pan_all = self.pan_eye + self.pan_head + pan
             tilt_all = self.tilt_eye + self.tilt_head + tilt
@@ -141,22 +142,14 @@ class HeadManager():
             self.pan_pub.publish(pan_all)
             self.tilt_pub.publish(tilt_all)
 
-            print "tilt: %f" % tilt
-            print "pan: %f" % pan
-
             pan_eye = self.pan_eye + pan
             tilt_eye = self.tilt_eye + tilt
 
             pan_head = self.pan_head + pan
             tilt_head = self.tilt_head + tilt
 
-            print "tilt_eye: %f" % tilt_eye
-            print "pan_eye: %f" % pan_eye
-            print "tilt_head: %f" % tilt_head
-            print "pan_head: %f" % pan_head
-
             if self.move_eyes:
-                if abs(pan_eye) < self.pan_eye_limit and self.tilt_eye_lower_limit < tilt_eye and tilt_eye < self.tilt_eye_upper_limit:
+                if abs(pan_eye) < self.pan_eye_limit and abs(tilt_eye) < self.tilt_eye_limit:
                     rospy.loginfo("moving eyes only")
                     self.pan_eye_left_pub.publish(pan_eye)
                     self.pan_eye_right_pub.publish(pan_eye)
@@ -191,7 +184,7 @@ class HeadManager():
                     print "new tilt_eye: %f" % tilt_eye
                     print "new pan_eye: %f" % pan_eye
 
-                    if abs(pan_eye) < self.pan_eye_limit and self.tilt_eye_lower_limit < tilt_eye and tilt_eye < self.tilt_eye_upper_limit:
+                    if abs(pan_eye) < self.pan_eye_limit and abs(tilt_eye) < self.tilt_eye_limit:
                         rospy.loginfo("moving eyes")
                         self.pan_eye_left_pub.publish(pan_eye)
                         self.pan_eye_right_pub.publish(pan_eye)
@@ -280,7 +273,7 @@ class HeadManager():
         tilt = y / 100 * (2 * math.pi)
 
         # adjust camera
-        if abs(pan) < self.pan_eye_limit and self.tilt_eye_lower_limit < tilt and tilt < self.tilt_eye_upper_limit:
+        if abs(pan_eye) < self.pan_eye_limit and abs(tilt_eye) < self.tilt_eye_limit:
             self.pan_eye_left_pub.publish(pan)
             self.pan_eye_right_pub.publish(pan)
             self.tilt_eye_pub.publish(tilt)
