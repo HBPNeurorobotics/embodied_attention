@@ -3,7 +3,7 @@ PKG = 'embodied_attention'
 import roslib; roslib.load_manifest(PKG)
 
 import rospy
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, Point
 import geometry_msgs
 from std_msgs.msg import Float64, String
 import std_msgs
@@ -77,6 +77,7 @@ class HeadManager():
         camera_sub = rospy.Subscriber("/camera_left/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         camera_info_left_sub = rospy.Subscriber("/camera_left/camera_info", CameraInfo, self.camera_info_left_callback, queue_size=1, buff_size=2**24)
         joint_state_sub = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback, queue_size=1, buff_size=2**24)
+        saccade_sub = rospy.Subscriber('saccade_target', Point, self.saccade, queue_size=3)
 
     def saccade(self, saccade):
         if self.camera_image is None:
@@ -87,7 +88,9 @@ class HeadManager():
             return False
         else:
 
-            saccade = saccade.target
+            if isinstance(saccade, Target):
+                # called with the service
+                saccade = saccade.target
 
             # scale saccade target to camera image size
             x = int(saccade.x * (float(self.camera_image.width)/self.saliency_width))

@@ -95,7 +95,7 @@ cmaes_best = [0.67047852, 0.73468325, 1.70975469, 0.52329993, 1.95957633, 1.6984
 def x_to_params(param_scaling):
     params = saccade_params.copy()
     for i, p in enumerate(optimize_params):
-        params[p] *= param_scaling[i]
+        params[p] = params[p] * param_scaling[i]
     params['tau_mod'] = params['tau']
     params['sig_mod'] = params['sig_rf']
     return params
