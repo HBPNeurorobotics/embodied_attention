@@ -20,6 +20,7 @@ import math
 import numpy as np
 import tf
 
+
 from gazebo_msgs.msg import LinkStates
 
 import time
@@ -123,9 +124,15 @@ class HeadManager():
 
             point_s = PointStamped()
             point_s.header.stamp = rospy.Time.now()
-            point_s.point.x = eye_to_target[0] + self.pan_head + self.pan_eye
-            point_s.point.y = eye_to_target[1] + self.tilt_head + self.tilt_eye
-            point_s.point.z = eye_to_target[2]
+            R_pan = tf.transformations.rotation_matrix( -1.*(self.pan_head + self.pan_eye), [0, -1, 0])
+            R_tilt = tf.transformations.rotation_matrix(- -1.*(self.tilt_head + self.tilt_head), [1, 0, 0])
+            R_eye_to_shoulder = tf.transformations.concatenate_matrices(R_pan, R_tilt)
+            target_shoulder = R_eye_to_shoulder.dot(np.append(eye_to_target, 1.))[:3]
+            print("eye_to_target in shoulder frame: {}".format(target_shoulder))
+
+            point_s.point.x = target_shoulder[0]
+            point_s.point.y = target_shoulder[1]
+            point_s.point.z = target_shoulder[2]
             self.point_pub.publish(point_s)
 
             # point = (point[2], point[0], -point[1])
