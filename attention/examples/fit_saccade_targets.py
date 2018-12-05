@@ -1,4 +1,4 @@
-from scipy import misc
+import cv2 as cv
 import scipy.io as sio
 import argparse
 from attention import Saliency
@@ -17,7 +17,7 @@ import pickle
 from skimage.draw import circle
 
 parser = argparse.ArgumentParser(description='Test saliency model')
-parser.add_argument('--model', type=str, required=True,
+parser.add_argument('--gpu', action='store_true',
                     help='path to the model.ckpt file')
 parser.add_argument('--image', type=str, required=True, nargs='+',
                     help='path to the input image')
@@ -35,9 +35,8 @@ try:
 except OSError as e:
     print(e)
 
-model_file = args.model
-saliency = Saliency(model_file=model_file)
-images = [ misc.imread(im) for im in args.image ]
+saliency = Saliency(use_gpu=args.gpu)
+images = [ image = cv.imread(im, 1) for im in args.image ]
 saliency_maps = [ saliency.compute_saliency_map(im) for im in images ]
 for (i, sal) in enumerate(saliency_maps):
     plt.imsave(path.join(args.out, 'saliency_{}.png'.format(i)), sal, cmap=plt.get_cmap('gray'))

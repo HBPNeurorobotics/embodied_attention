@@ -17,26 +17,13 @@ The integration in ROS has the advantage that the model can be run on a physical
 
 If you use the Neurorobotics, this module installs itself with the install script provided in [CDP4 experiment](https://github.com/HBPNeurorobotics/CDP4_experiment).
 
-Otherwise, there are multiple ways you can use the models provided in this package.
-In any way, you will need the files defining the TensorFlow model for the saliency network.
-You can download the model on HBP SP10 nextcloud:
+#### Python standalone
+
+You can install the provided python package ```attention``` to use the models in your python script the following way.
 
 ```bash
-download_saliency () {
-    if [ $1 ]; then
-        curl -k -o model.ckpt.meta "https://neurorobotics-files.net/index.php/s/SNsfXBjm3bpNoMB/download"
-        curl -k -o model.ckpt.index "https://neurorobotics-files.net/index.php/s/tZ64sd9diA2X8QZdownload"
-        curl -k -o model.ckpt.data-00000-of-00001 "https://neurorobotics-files.net/index.php/s/nHtn8Q9ezxLtP3B/download"
-        echo "gpu" > config
-    else
-        curl -k -o model.ckpt.meta "https://neurorobotics-files.net/index.php/s/B3mB7aRKpy6EEE2/download"
-        curl -k -o model.ckpt.index "https://neurorobotics-files.net/index.php/s/zXW99pqBmKN2TCf/download"
-        curl -k -o model.ckpt.data-00000-of-00001 "https://neurorobotics-files.net/index.php/s/X5g6ajtSNefYpnH/download"
-        echo "cpu" > config
-    fi
-}
- # optional argument: gpu
-download_saliency
+cd attention
+pip install -e .
 ```
 
 #### On the Neurorobotics Platform
@@ -50,13 +37,5 @@ You can use the following launcher to test the model with your webcam using ROS:
 
     roslaunch embodied_attention webcam.launch
 
-#### Python standalone
-
-You can install the provided python package ```attention``` to use the models in your python script the following way.
-
-```bash
-cd attention
-pip install -e .
-```
 
 Have a look to [attention/examples/saccade_static_image.py](attention/examples/saccade_static_image.py) for an example script on how to use the saliency and saccade modules.

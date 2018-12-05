@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from scipy import misc
+import cv2 as cv
 import argparse
 from attention import Saliency
 from attention import Saccade
@@ -10,7 +10,7 @@ import os
 from os import path
 
 parser = argparse.ArgumentParser(description='Test saliency model')
-parser.add_argument('--model', type=str, required=True,
+parser.add_argument('--gpu', action='store_true',
                     help='path to the model.ckpt file')
 parser.add_argument('--out', type=str, default='/tmp/saliency',
                     help='path to output folder')
@@ -18,9 +18,11 @@ parser.add_argument('--image', type=str, required=True,
                     help='path to the input image')
 parser.add_argument('--rf_modulation_type', type=str, default='none',
                     help='type of receptive field modulation')
-
+parser.add_argument('--seed', type=int, default=10,
+                    help='random seed')
 
 args = parser.parse_args()
+np.random.seed(args.seed)
 
 try:
     os.makedirs(args.out)
@@ -28,9 +30,8 @@ except OSError as e:
     print(e)
 
 # demonstration of saliency model
-model_file = args.model
-saliency = Saliency(model_file=model_file)
-image = misc.imread(args.image)
+saliency = Saliency(use_gpu=args.gpu)
+image = cv.imread(args.image, 1)
 saliency_map = saliency.compute_saliency_map(image)
 # plt.imsave(path.join(args.out, 'saliency.png'), saliency_map, cmap=plt.get_cmap('gray'))
 

@@ -2,6 +2,7 @@
 
 import sys
 import os
+from os import path
 import cv2 as cv
 import numpy as np
 
@@ -50,7 +51,14 @@ def pad_image(img, new_h, new_w):
     return padded_img
 
 class Saliency():
-    def __init__(self, tensorflow_path=None, model_file='/tmp/model.ckpt', network_input_height=192, network_input_width=256, clip=False):
+    def __init__(self, tensorflow_path=None,
+                 use_gpu=False,
+                 network_input_height=240, network_input_width=320, clip=False):
+        if use_gpu:
+            device = 'gpu'
+        else:
+            device = 'cpu'
+        model_file=path.join(path.dirname(__file__), '..', '..', 'model', device, 'model.pb')
 
         if (tensorflow_path):
             import site
@@ -60,13 +68,18 @@ class Saliency():
         self.tf = tf
 
         ### saliency
-        meta_file = model_file + ".meta"
-        self.sess = tf.Session()
-        self.net = tf.train.import_meta_graph(meta_file)
-        self.net.restore(self.sess, model_file)
-        graph = tf.get_default_graph()
-        self.output = graph.get_operation_by_name("conv2d_8/BiasAdd").outputs[0]
-        self.input = graph.get_tensor_by_name("Placeholder_1:0")
+        graph_def = tf.GraphDef()
+
+        with tf.gfile.Open(model_file, "rb") as f:
+            graph_def.ParseFromString(f.read())
+
+        with tf.Graph().as_default() as graph:
+            tf.import_graph_def(graph_def, name="")
+
+        self.input = graph.get_operation_by_name("Placeholder").outputs[0]
+        self.output = graph.get_operation_by_name("transpose_9").outputs[0]
+
+        self.sess = tf.Session(graph=graph)
 
         self.network_input_height = int(network_input_height)
         self.network_input_width = int(network_input_width)
@@ -79,18 +92,9 @@ class Saliency():
         ### compute saliency map
         stim = rescale_image(frame, self.network_input_height, self.network_input_width)
         stim = pad_image(stim, self.network_input_height, self.network_input_width)
+        stim = stim[None, :, :, :].transpose(0, 3, 1, 2)
 
-        stim = stim[None, :, :, :]
-        stim = stim.astype(np.float32)
-
-        # subtract mean channel activation
-        stim[:, :, :, 0] -= 99.50135
-        stim[:, :, :, 1] -= 109.85075
-        stim[:, :, :, 2] -= 118.14625
-
-        stim = stim.transpose(0, 3, 1, 2)
-
-        self.tf.reset_default_graph()
+        # self.tf.reset_default_graph()
 
         saliency_map = self.sess.run(self.output, feed_dict={self.input: stim})
         saliency_map = saliency_map.squeeze()
@@ -98,17 +102,5 @@ class Saliency():
             saliency_map = saliency_map.clip(0)
         else:
             saliency_map = (saliency_map - saliency_map.min()) / (saliency_map.max() - saliency_map.min())
-
-        thickness = 50
-
-        for c in range(0, len(saliency_map)):
-            for i in range(0, thickness):
-                saliency_map[c][i] *= (1 - (thickness-i)/float(thickness))
-                saliency_map[c][len(saliency_map[0]) - i - 1] *= (1 - (thickness-i)/float(thickness))
-
-        for r in range(0, len(saliency_map[0])):
-            for i in range(0, thickness):
-                saliency_map[i][r] *= (1 - (thickness-i)/float(thickness))
-                saliency_map[len(saliency_map) - i - 1][r] *= (1 - (thickness-i)/float(thickness))
 
         return saliency_map

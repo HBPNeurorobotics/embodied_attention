@@ -1,4 +1,4 @@
-from scipy import misc
+import cv2 as cv
 import argparse
 from attention import Saliency
 from attention import Saccade
@@ -10,7 +10,7 @@ import os
 from os import path
 
 parser = argparse.ArgumentParser(description='Test saliency model')
-parser.add_argument('--model', type=str, required=True,
+parser.add_argument('--gpu', action='store_true',
                     help='path to the model.ckpt file')
 parser.add_argument('--image', type=str, required=True,
                     help='path to the input image')
@@ -98,8 +98,8 @@ def plot_targets_rf(all_targets, saliency_map, out):
     plt.savefig(path.join(out, 'targets.png'), dpi=150)
 
 model_file = args.model
-saliency = Saliency(model_file=model_file)
-image = misc.imread(args.image)
+saliency = Saliency(use_gpu=args.gpu)
+image = cv.imread(args.image, 1)
 saliency_map = saliency.compute_saliency_map(image)
 plt.imsave(path.join(args.out, 'saliency.png'), saliency_map, cmap=plt.get_cmap('gray'))
 
