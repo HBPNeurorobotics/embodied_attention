@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <launch>
+  <arg name="gpu" default="0" />
   <node name="saliency" pkg="embodied_attention" type="saliency.py" output="screen">
-    <param name="saliency_file" value="$(find embodied_attention)/model/model.ckpt"/>
-    <param name="network_input_width" value="256"/>
-    <param name="network_input_height" value="192"/>
+    <param name="use_gpu" value="$(arg gpu)"/>
+    <param name="network_input_width" value="320"/>
+    <param name="network_input_height" value="240"/>
     <param name="clip" value="False"/>
   </node>
   <node name="saccade" pkg="embodied_attention" type="saccade.py">

@@ -25,6 +25,8 @@ parser.add_argument('--out', type=str, default='/tmp/fit_saccade_targets',
                     help='path to output folder')
 parser.add_argument('--n-iter', type=int, default=200,
                     help='number of CMAES iterations')
+parser.add_argument('--rf-radius-score', type=int, default=5,
+                    help='radius of circle taken into account to compute score in saliency pixels')
 parser.add_argument('--seed', type=int, default=10,
                     help='random seed')
 
@@ -36,7 +38,7 @@ except OSError as e:
     print(e)
 
 saliency = Saliency(use_gpu=args.gpu)
-images = [ image = cv.imread(im, 1) for im in args.image ]
+images = [ cv.imread(im, 1) for im in args.image ]
 saliency_maps = [ saliency.compute_saliency_map(im) for im in images ]
 for (i, sal) in enumerate(saliency_maps):
     plt.imsave(path.join(args.out, 'saliency_{}.png'.format(i)), sal, cmap=plt.get_cmap('gray'))
@@ -95,7 +97,7 @@ def simulate(sol, n_it, i, time_limit=5000):
         while time < time_limit:
             (target, is_actual_target) = saccade.compute_saccade_target(sal, dt=dt)
             if is_actual_target:
-                rr, cc = circle(target[1], target[0], 5, shape=score_img.shape)
+                rr, cc = circle(target[1], target[0], radius=args.rf_radius_score, shape=score_img.shape)
                 score_img[rr, cc] = sal[rr, cc]
                 all_times.append(time)
             time += dt
