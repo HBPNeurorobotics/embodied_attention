@@ -74,7 +74,6 @@ saccade_params = OrderedDict([
     ('modulation_type', args.rf_modulation_type)
 ])
 
-
 optimize_params = [
     'sig_lat',
     'sig_rf',
@@ -90,8 +89,8 @@ optimize_params = [
 ]
 
 # cmaes_best = [0.73303171, 0.40036918, 1.61391472, 1.05752332, 0.98779811, 1.99986595, 1.17318613, 1.75298134, 0.09770866, 0.4222649 , 1.99960248]
-cmaes_best = [0.67047852, 0.73468325, 1.70975469, 0.52329993, 1.95957633, 1.69840321, 1.39682682, 1.73032908, 1.08449489, 0.71893327, 1.99403796]
-
+# cmaes_best = [0.67047852, 0.73468325, 1.70975469, 0.52329993, 1.95957633, 1.69840321, 1.39682682, 1.73032908, 1.08449489, 0.71893327, 1.99403796]
+cmaes_best = [1.22719931, 0.66935663, 1.78590383, 0.2920052, 1.99979222, 1.61678862, 1.07153312, 1.96586086, 0.01860188, 1.3752726, 1.50149685]
 # convert the cmaes params to the full state x by inserting static params
 def x_to_params(param_scaling):
     params = saccade_params.copy()
@@ -101,7 +100,9 @@ def x_to_params(param_scaling):
     params['sig_mod'] = params['sig_rf']
     return params
 
-saccade = Saccade(**x_to_params(cmaes_best))
+best_saccade_params = x_to_params(cmaes_best)
+print("Saccade params:\n{}".format(best_saccade_params))
+saccade = Saccade(**best_saccade_params)
 ims = []
 dt = 5
 simulation_time = 1000

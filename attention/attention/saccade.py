@@ -4,6 +4,7 @@ import sys
 import os
 import numpy as np
 from scipy import misc
+from collections import OrderedDict
 
 def gauss(x, y, X, Y, sigma):
     return np.exp(-(np.power(x-X, 2)+np.power(y-Y, 2))/(2.*np.power(sigma ,2)))
@@ -12,24 +13,28 @@ def positiv(x): return np.maximum(x, 0.)
 
 class Saccade:
     def __init__(self, **kwargs):
-        ## parameters taken from:
-        ## Purcell et al. (2012). From Salience to Saccades: Multiple-Alternative Gated Stochastic Accumulator Model of Visual Search. Journal of Neuroscience, 32(10)
         self.N       =  1600       # number of neurons per type (visual, movement)
-        self.theta   =    6.       # decision threshold
-        self.sig_lat      = .1     # width of Gaussian lateral inhibition
-        self.amp_lat       = .001  # scaling factor for lateral inhibition (originally G)
-        self.sig_rf      =  0.267  # width of Gaussian receptive field
-        self.amp_rf      =  0.008  # scaling factor for receptive field
-        self.sig_mod  =  0.267     # width of Gaussian modulation
-        self.amp_mod  =  1.        # amplitude of Gaussian modulation
-        self.sig_IoR =      .1     # width of Gaussian spread of inhibition of return
-        self.amp_IoR =      1.5    # strength of inhibition of return
-        self.amp_noise =    .09    # strength of noise
-        self.k       =      .017   # passive decay rate (movement neurons)
-        self.g       =      .33    # input threshold
-        self.tau = 50.
-        self.tau_mod = 50.
+
+        default_params = OrderedDict([('sig_lat', 0.122719931),
+                                      ('sig_rf', 0.17871822021),
+                                      ('sig_IoR', 0.17859038300000002),
+                                      ('amp_lat', 0.00029200520000000003),
+                                      ('amp_rf', 0.015998337760000002),
+                                      ('amp_IoR', 2.42518293),
+                                      ('amp_noise', 0.0964379808),
+                                      ('k', 0.033419634620000006),
+                                      ('g', 0.006138620400000001),
+                                      ('theta', 8.2516356),
+                                      ('tau', 75.0748425),
+                                      ('modulation_type', 'compression'),
+                                      ('tau_mod', 75.0748425),
+                                      ('sig_mod', 0.17871822021)])
+        for key, value in default_params.items():
+            setattr(self, key, value)
+
         self.modulation_type = 'none'
+        self.tau_mod = 50.
+        self.amp_mod = 1.
 
         for key, value in kwargs.items():
             if hasattr(self, key):
